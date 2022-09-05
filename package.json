@@ -30,8 +30,18 @@
       "properties": {
         "thresholds.cyclomaticComplexity": {
           "type": "number",
-          "default": 0,
+          "default": 2,
           "description": "Cyclomatic complexity threshold."
+        },
+        "thresholds.tokenCount": {
+          "type": "number",
+          "default": 2,
+          "description": "Token count"
+        },
+        "thresholds.numOfParameters": {
+          "type": "number",
+          "default": 2,
+          "description": "Number of parameters"
         }
       }
     }
