@@ -10,7 +10,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:lizard-linter.helloWorld"
+    "onCommand:lizard-linter.helloWorld",
+    "onCommand:lizard-linter.lint"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -18,8 +19,22 @@
       {
         "command": "lizard-linter.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "lizard-linter.lint",
+        "title": "Execute lint"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Thresholds",
+      "properties": {
+        "thresholds.cyclomaticComplexity": {
+          "type": "number",
+          "default": 0,
+          "description": "Cyclomatic complexity threshold."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -30,16 +45,19 @@
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@types/vscode": "^1.71.0",
     "@types/glob": "^7.2.0",
     "@types/mocha": "^9.1.1",
     "@types/node": "16.x",
+    "@types/vscode": "^1.71.0",
     "@typescript-eslint/eslint-plugin": "^5.31.0",
     "@typescript-eslint/parser": "^5.31.0",
+    "@vscode/test-electron": "^2.1.5",
     "eslint": "^8.20.0",
     "glob": "^8.0.3",
     "mocha": "^10.0.0",
-    "typescript": "^4.7.4",
-    "@vscode/test-electron": "^2.1.5"
+    "typescript": "^4.7.4"
+  },
+  "dependencies": {
+    "path": "^0.12.7"
   }
 }
