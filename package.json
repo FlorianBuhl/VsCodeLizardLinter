@@ -11,7 +11,23 @@
   ],
   "activationEvents": [
     "onCommand:lizard-linter.helloWorld",
-    "onCommand:lizard-linter.lint"
+    "onCommand:lizard-linter.lint",
+    "workspaceContains:**/*.c",
+    "workspaceContains:**/*.h",
+    "workspaceContains:**/*.cpp",
+    "workspaceContains:**/*.cs",
+    "workspaceContains:**/*.gd",
+    "workspaceContains:**/*.go",
+    "workspaceContains:**/*.java",
+    "workspaceContains:**/*.js",
+    "workspaceContains:**/*.lua",
+    "workspaceContains:**/*.m",
+    "workspaceContains:**/*.php",
+    "workspaceContains:**/*.py",
+    "workspaceContains:**/*.rb",
+    "workspaceContains:**/*.rs",
+    "workspaceContains:**/*.scala",
+    "workspaceContains:**/*.swift"
   ],
   "main": "./out/extension.js",
   "contributes": {
