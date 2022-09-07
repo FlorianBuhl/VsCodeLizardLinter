@@ -1,5 +1,4 @@
-// Import the module and reference it with the alias vscode in your code below
-
+// Imports
 import * as vscode from 'vscode';
 import * as lizard from './lizard';
 
@@ -19,6 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
 	disposable = vscode.workspace.onDidSaveTextDocument(lizard.onDidSaveTextDocument);
 	context.subscriptions.push(disposable);
 
+	// onDidOpenTextDocument
 	disposable = vscode.workspace.onDidOpenTextDocument(lizard.onDidSaveTextDocument);
 	context.subscriptions.push(disposable);
 
