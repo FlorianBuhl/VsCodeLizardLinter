@@ -43,6 +43,19 @@ export function getLizardContent(analyzedFunctions: lizard.FunctionAnalysis[]) {
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Cat Coding</title>
+      <style>
+        table {
+          border-collapse: collapse;
+          width: 100%;
+        }
+
+        td, th {
+          border: 1px solid;
+          text-align: left;
+          padding: 8px;
+        }
+      </style>
+
   </head>
   ${body}
   </html>`;
