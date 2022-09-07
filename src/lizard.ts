@@ -31,16 +31,11 @@ export function onDidEndTask(event: vscode.TaskEndEvent){
 
 //---------------------------------------------------------------------------------------------------------------------
 
-export function lint()
-{
-	if((undefined !== vscode.window.activeTextEditor)
-	&& (undefined !== vscode.workspace.workspaceFolders)) {
-		const openedFilePath = vscode.window.activeTextEditor.document.uri.fsPath;
-		const openedFileName = path.parse(openedFilePath).name;
+export function lintUri(uri: vscode.Uri){
+	if(undefined !== vscode.workspace.workspaceFolders && isFileExtensionIsSupported(uri)){
 		const logFolderUri = vscode.Uri.joinPath(vscode.workspace.workspaceFolders[0].uri, "log");
+		const openedFileName = path.parse(uri.fsPath).name;
 		const logFileUri = vscode.Uri.joinPath(logFolderUri, openedFileName + ".log");
-
-		console.log(`openedFilePath ${openedFilePath}\nopenedFileName ${openedFileName}\nlogFolderUri ${logFolderUri.fsPath}\nlogFileUri ${logFileUri.fsPath}`);
 
 		// create lizard log folder if it does not exist
 		if(!fs.existsSync(logFolderUri.fsPath)) {
@@ -49,24 +44,25 @@ export function lint()
 		// remove previously generated log file
 		if(fs.existsSync(logFileUri.fsPath)){
 			fs.rmSync(logFileUri.fsPath);
-			// fs.writeFileSync(logFileUri.fsPath, "");
 		}
 
-		// empty log file
-		fs.writeFileSync(logFileUri.fsPath, "");
-
-		let cmd = `lizard ${openedFilePath} >> ${logFileUri.fsPath}`;
-		let shellExecution = new vscode.ShellExecution(cmd);
-
+		// change state
 		state = State.inExecution;
 		curLogFileUri = logFileUri;
+
+		// create task
+		let cmd = `lizard ${uri.fsPath} >> ${logFileUri.fsPath}`;
+		let shellExecution = new vscode.ShellExecution(cmd);
+
 		let task = new vscode.Task({type: "LizardExecution"},
 		vscode.workspace.workspaceFolders[0], "Execute lizard tool",
-		"lizard-linter",shellExecution);
+		"lizard-linter", shellExecution);
+		task.presentationOptions.focus = false;
+		task.presentationOptions.reveal = vscode.TaskRevealKind.Never;
+
+		// execute task
 		vscode.tasks.executeTask(task);
 	}
-
-	vscode.window.showInformationMessage('Execute lint');
 }
 
 //---------------------------------------------------------------------------------------------------------------------
