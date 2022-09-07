@@ -58,6 +58,16 @@
           "type": "number",
           "default": 2,
           "description": "Number of parameters"
+        },
+        "thresholds.ExecuteLizardLintOnFileSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Execute lizard linter on file save"
+        },
+        "thresholds.logFilePath": {
+          "type": "string",
+          "default": ".log/lizard/",
+          "description": "Execute lizard linter on file save"
         }
       }
     }
