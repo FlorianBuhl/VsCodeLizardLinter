@@ -1,6 +1,7 @@
 // Imports
 import * as vscode from 'vscode';
 import * as lizard from './lizard';
+import * as lizardTableView from './lizardTableView';
 
 //---------------------------------------------------------------------------------------------------------------------
 
@@ -31,6 +32,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(disposable);
 
 	lizard.activate();
+	lizardTableView.activate(context);
 
 	console.log("Lizard tool activated");
 }

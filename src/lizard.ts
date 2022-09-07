@@ -2,6 +2,8 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { join } from 'path';
+// import * as lizardModel from './lizardModel';
 
 //---------------------------------------------------------------------------------------------------------------------
 
@@ -10,7 +12,7 @@ enum State {
   inExecution,
 }
 
-type FunctionAnalysis = {
+export type FunctionAnalysis = {
 	name: string,
 	cyclomaticComplexity: number,
 	numOfParameters: number,
@@ -35,7 +37,7 @@ let lintByFileSave: boolean = false;
 const supportedExtensions: string[] = [".c", ".h", ".cpp", ".cs", ".gd", ".go", ".java", ".js", ".lua", ".m", ".php",
 ".py", ".rb", ".rs", ".scala", ".swift"];
 
-let fileLogs : FileAnalysis[];
+let fileLogs: Map<string, FunctionAnalysis[]>;
 
 //---------------------------------------------------------------------------------------------------------------------
 
@@ -47,7 +49,7 @@ export function createDiagnosticCollection(): vscode.DiagnosticCollection {
 //---------------------------------------------------------------------------------------------------------------------
 
 export function activate() {
-	fileLogs = [];
+	fileLogs = new Map();
 
 	if(vscode.workspace.getConfiguration('thresholds').get('ExecuteLizardLintOnFileSave')) {
 		lintByFileSave = true;
@@ -177,6 +179,39 @@ export function analyzeLizardLogFile(text: string): Map<vscode.Uri, vscode.Diagn
 				const filePath = m[9];
 				let fileUri = vscode.Uri.file(filePath);
 
+				let functionAnalysis: FunctionAnalysis = {
+					name: functionName,
+					cyclomaticComplexity: cyclomaticComplexity,
+					tokenCount: tokenCount,
+					numOfParameters: numOfParameters,
+					start: lineStartNumberInEditor,
+					end: lineEndNumberInEditor,
+				};
+
+				let currentFunctionsAnalysis = fileLogs.get(fileUri.fsPath);
+				if(currentFunctionsAnalysis === undefined) {
+					fileLogs.set(fileUri.fsPath, [functionAnalysis]);
+				}
+				else{
+					let foundFunction = false;
+					for(let i=0; i<currentFunctionsAnalysis.length; i++) {
+						if(currentFunctionsAnalysis[i].name === functionAnalysis.name) {
+							currentFunctionsAnalysis[i].cyclomaticComplexity = functionAnalysis.cyclomaticComplexity;
+							currentFunctionsAnalysis[i].tokenCount = functionAnalysis.tokenCount;
+							currentFunctionsAnalysis[i].numOfParameters = functionAnalysis.numOfParameters;
+							currentFunctionsAnalysis[i].start = functionAnalysis.start;
+							currentFunctionsAnalysis[i].end = functionAnalysis.end;
+							foundFunction = true;
+							break;
+						}
+					}
+					if(!foundFunction){
+					// nothing found add it.
+					currentFunctionsAnalysis.push(functionAnalysis);
+					fileLogs.set(fileUri.fsPath, currentFunctionsAnalysis);
+					}
+				}
+
 				if((undefined !== previousUri) && (previousUri.fsPath === fileUri.fsPath)) {
 					fileUri = previousUri;
 				}
@@ -239,4 +274,8 @@ function createDiagnosticEntries(range: vscode.Range, cyclomaticComplexity: numb
 	}
 
 	return diagnostics;
+}
+
+export function getFileAnalysis(fsPath: string): FunctionAnalysis[] | undefined {
+	return fileLogs.get(fsPath);
 }

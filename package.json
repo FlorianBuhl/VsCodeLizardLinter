@@ -39,6 +39,10 @@
       {
         "command": "lizard-linter.lint",
         "title": "Execute lint"
+      },
+      {
+        "command": "lizard-linter.showTable",
+        "title": "Show lizard table"
       }
     ],
     "configuration": {
