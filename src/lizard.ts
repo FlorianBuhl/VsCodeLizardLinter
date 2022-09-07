@@ -1,3 +1,4 @@
+// Imports
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -9,6 +10,22 @@ enum State {
   inExecution,
 }
 
+type FunctionAnalysis = {
+	name: string,
+	cyclomaticComplexity: number,
+	numOfParameters: number,
+	tokenCount: number
+	start: number,
+	end: number,
+};
+
+type FileAnalysis = {
+	filePath: string,
+	functionAnalysis: FunctionAnalysis[],
+};
+
+//---------------------------------------------------------------------------------------------------------------------
+
 let diagnosticCollection: vscode.DiagnosticCollection;
 
 let state: State = State.idle;
@@ -17,6 +34,8 @@ let lintByFileSave: boolean = false;
 
 const supportedExtensions: string[] = [".c", ".h", ".cpp", ".cs", ".gd", ".go", ".java", ".js", ".lua", ".m", ".php",
 ".py", ".rb", ".rs", ".scala", ".swift"];
+
+let fileLogs : FileAnalysis[];
 
 //---------------------------------------------------------------------------------------------------------------------
 
@@ -28,6 +47,8 @@ export function createDiagnosticCollection(): vscode.DiagnosticCollection {
 //---------------------------------------------------------------------------------------------------------------------
 
 export function activate() {
+	fileLogs = [];
+
 	if(vscode.workspace.getConfiguration('thresholds').get('ExecuteLizardLintOnFileSave')) {
 		lintByFileSave = true;
 	}
@@ -70,9 +91,7 @@ export function onDidEndTask(event: vscode.TaskEndEvent){
 //---------------------------------------------------------------------------------------------------------------------
 
 export function isFileExtensionIsSupported(uri: vscode.Uri){
-	const ext = path.extname(uri.fsPath);
-	return supportedExtensions.includes(ext);
-	// return supportedExtensions.includes(path.extname(uri.fsPath));
+	return supportedExtensions.includes(path.extname(uri.fsPath));
 }
 
 //---------------------------------------------------------------------------------------------------------------------
