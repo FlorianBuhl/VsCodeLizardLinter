@@ -13,6 +13,10 @@ let diagnosticCollection: vscode.DiagnosticCollection;
 
 let state: State = State.idle;
 let curLogFileUri: vscode.Uri;
+let lintByFileSave: boolean = false;
+
+const supportedExtensions: string[] = [".c", ".h", ".cpp", ".cs", ".gd", ".go", ".java", ".js", ".lua", ".m", ".php",
+".py", ".rb", ".rs", ".scala", ".swift"];
 
 //---------------------------------------------------------------------------------------------------------------------
 
@@ -23,10 +27,52 @@ export function createDiagnosticCollection(): vscode.DiagnosticCollection {
 
 //---------------------------------------------------------------------------------------------------------------------
 
+export function activate() {
+	if(vscode.workspace.getConfiguration('thresholds').get('ExecuteLizardLintOnFileSave')) {
+		lintByFileSave = true;
+	}
+	else {
+		lintByFileSave = false;
+	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+export function onDidSaveTextDocument(event: vscode.TextDocument){
+	if(true === lintByFileSave) {
+		lintUri(event.uri);
+	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+export function onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent){
+	let affected = event.affectsConfiguration("thresholds.ExecuteLizardLintOnFileSave");
+	if(affected) {
+		if(vscode.workspace.getConfiguration('thresholds').get('ExecuteLizardLintOnFileSave')) {
+			lintByFileSave = true;
+		}
+		else {
+			lintByFileSave = false;
+		}
+	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 export function onDidEndTask(event: vscode.TaskEndEvent){
 	if (event.execution.task.definition.type === "LizardExecution") {
 		analyzeLizardLogFiles([curLogFileUri]);
+		event.execution.terminate();
 	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+export function isFileExtensionIsSupported(uri: vscode.Uri){
+	const ext = path.extname(uri.fsPath);
+	return supportedExtensions.includes(ext);
+	// return supportedExtensions.includes(path.extname(uri.fsPath));
 }
 
 //---------------------------------------------------------------------------------------------------------------------
