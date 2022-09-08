@@ -12,6 +12,9 @@ export function activate(context: vscode.ExtensionContext) {
 	let disposable = vscode.commands.registerCommand('lizard-linter.lint', executeLintCmd);
 	context.subscriptions.push(disposable);
 
+	disposable = vscode.commands.registerCommand('lizard-linter.lintFolder', executeLintFolder);
+	context.subscriptions.push(disposable);
+
 	// diagnostics
 	context.subscriptions.push(lizard.createDiagnosticCollection());
 
@@ -38,6 +41,16 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 //---------------------------------------------------------------------------------------------------------------------
+
+function executeLintFolder(folder: vscode.Uri | undefined){
+	if(undefined !== folder){
+		console.log (folder.fsPath);
+		lizard.lintUri(folder);
+	}
+	else{
+		console.log("undefined");
+	}
+}
 
 function executeLintCmd()
 {

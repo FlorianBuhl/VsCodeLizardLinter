@@ -36,10 +36,22 @@
         "title": "Execute lint"
       },
       {
+        "command": "lizard-linter.lintFolder",
+        "title": "Execute lint on folder"
+      },
+      {
         "command": "lizard-linter.showTable",
         "title": "Show lizard table"
       }
     ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "lizard-linter.lintFolder",
+          "group": "7_modification"
+        }
+      ]
+    },
     "configuration": {
       "title": "Lizard-Linter",
       "properties": {

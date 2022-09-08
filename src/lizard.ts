@@ -95,7 +95,12 @@ export function onDidEndTask(event: vscode.TaskEndEvent){
 //---------------------------------------------------------------------------------------------------------------------
 
 export function isFileExtensionIsSupported(uri: vscode.Uri){
-	return supportedExtensions.includes(path.extname(uri.fsPath));
+	if(fs.statSync(uri.fsPath).isDirectory()) {
+		return true;
+	}
+	else {
+		return supportedExtensions.includes(path.extname(uri.fsPath));
+	}
 }
 
 //---------------------------------------------------------------------------------------------------------------------
