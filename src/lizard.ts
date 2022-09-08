@@ -234,48 +234,6 @@ export function analyzeLizardLogFile(text: string): Map<vscode.Uri, vscode.Diagn
 
 //---------------------------------------------------------------------------------------------------------------------
 
-function createDiagnosticEntries(range: vscode.Range, cyclomaticComplexity: number, tokenCount: number, numOfParameters: number, functionName: string) : vscode.Diagnostic[] {
-	let threshold: number | undefined;
-	let message: string;
-	const diagnostics: vscode.Diagnostic[] = [];
-	const lizardLinterConfiguration = vscode.workspace.getConfiguration('thresholds');
-
-	// cyclomatic complexity
-	threshold = lizardLinterConfiguration.get("cyclomaticComplexity");
-	if(undefined === threshold) {
-		threshold = 0;
-	}
-	if(cyclomaticComplexity > threshold) {
-
-		message = `Cyclomatic complexity of ${cyclomaticComplexity} higher then threshold (${threshold}) for function ${functionName}`;
-		diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
-	}
-
-	// token count
-	threshold = lizardLinterConfiguration.get("tokenCount");
-	if(undefined === threshold) {
-		threshold = 0;
-	}
-	if(tokenCount > threshold) {
-		message = `Token count of ${tokenCount} higher then threshold (${threshold}) for function ${functionName}`;
-		diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
-	}
-
-	// number of parameters
-	threshold = lizardLinterConfiguration.get("numOfParameters");
-	if(undefined === threshold) {
-		threshold = 0;
-	}
-	if(numOfParameters > threshold) {
-		message = `Number of parameters ${numOfParameters} higher then threshold (${threshold}) for function ${functionName}`;
-		diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
-	}
-
-	return diagnostics;
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
 function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diagnostic[] {
 	let threshold: number | undefined;
 	let message: string;
