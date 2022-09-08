@@ -2,8 +2,6 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { join } from 'path';
-// import * as lizardModel from './lizardModel';
 
 //---------------------------------------------------------------------------------------------------------------------
 
@@ -22,6 +20,7 @@ export type FunctionAnalysis = {
 	violatesCyclomaticComplexityThreshold?: boolean,
 	violatesNumOfParameters?: boolean,
 	violatesTokenCount?: boolean,
+	path: vscode.Uri,
 };
 
 type FileAnalysis = {
@@ -185,6 +184,7 @@ export function analyzeLizardLogFile(text: string): Map<vscode.Uri, vscode.Diagn
 					violatesCyclomaticComplexityThreshold: false,
 					violatesNumOfParameters: false,
 					violatesTokenCount: false,
+					path: vscode.Uri.file(m[9]),
 				};
 
 				let currentFunctionsAnalysis = fileLogs.get(fileUri.fsPath);

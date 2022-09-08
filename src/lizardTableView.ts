@@ -10,19 +10,42 @@ export function activate(context: vscode.ExtensionContext){
 
 //---------------------------------------------------------------------------------------------------------------------
 
-export function createTable() {
+function createTable() {
   if(undefined !== vscode.window.activeTextEditor) {
 		const analyzedFunctions = lizard.getFileAnalysis(vscode.window.activeTextEditor.document.uri.fsPath);
     if(analyzedFunctions !== undefined) {
-      const panel = vscode.window.createWebviewPanel("lizardTable", "lizard table", vscode.ViewColumn.Beside);
+      const panel = vscode.window.createWebviewPanel("lizardTable", "lizard table", vscode.ViewColumn.Beside, { enableScripts: true });
       panel.webview.html = getLizardContent(analyzedFunctions);
+      panel.webview.onDidReceiveMessage(onDidReceiveMessage);
      }
 	}
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 
-export function getLizardContent(analyzedFunctions: lizard.FunctionAnalysis[]) {
+async function onDidReceiveMessage(event: any){
+  if(event.command === "open"){
+    const uri = vscode.Uri.parse(event.link);
+    const line = (+uri.fragment.substring(1)) - 1;
+    const range = new vscode.Range(line, 0, line, 1);
+
+    let linkRevealed = false;
+    for (let visibleEditor of vscode.window.visibleTextEditors){
+      if(visibleEditor.document.uri.fsPath === uri.fsPath){
+        visibleEditor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+        linkRevealed = true;
+      }
+    }
+    if(linkRevealed === false) {
+      const editor = await vscode.window.showTextDocument(uri);
+      editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+    }
+  }
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+function getLizardContent(analyzedFunctions: lizard.FunctionAnalysis[]) {
   let tableHtmlString: string = "<table>";
   tableHtmlString += "<tr>";
   tableHtmlString += "<th>name</th><th>complexity</th><th>parameters</th><th>token count</th>";
@@ -30,7 +53,7 @@ export function getLizardContent(analyzedFunctions: lizard.FunctionAnalysis[]) {
 
   for(let functionAnalysis of analyzedFunctions){
     tableHtmlString += "<tr>";
-    tableHtmlString += `<td>${functionAnalysis.name}</td>`;
+    tableHtmlString += `<td><a href="${functionAnalysis.path}#L${functionAnalysis.start}">${functionAnalysis.name}</a></td>`;
     tableHtmlString += `<td class="${functionAnalysis.violatesCyclomaticComplexityThreshold}">${functionAnalysis.cyclomaticComplexity}</td>`;
     tableHtmlString += `<td class="${functionAnalysis.violatesNumOfParameters}">${functionAnalysis.numOfParameters}</td>`;
     tableHtmlString += `<td class="${functionAnalysis.violatesTokenCount}">${functionAnalysis.tokenCount}</td>`;
@@ -67,6 +90,18 @@ export function getLizardContent(analyzedFunctions: lizard.FunctionAnalysis[]) {
 
   </head>
   ${body}
+  <script>
+  const vscode = acquireVsCodeApi();
+
+  for (const link of document.querySelectorAll('a[href^="file:"]')) {
+      link.addEventListener('click', () => {
+          vscode.postMessage({
+              command: "open",
+              link: link.getAttribute('href'),
+          });
+      });
+  }
+  </script>
   </html>`;
   return htmlFile;
 }
