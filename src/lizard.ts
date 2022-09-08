@@ -134,6 +134,11 @@ export function lintUri(uri: vscode.Uri){
 		threshold = lizardLinterConfiguration.get("tokenCount");
 		lizardArgs += `-T token_count=${threshold}`;
 
+		// modified cyclomatic complexity
+		if(vscode.workspace.getConfiguration("execution.ModifiedCyclomaticComplexity")){
+			lizardArgs += ' -m';
+		}
+
 		let cmd = `lizard ${uri.fsPath} ${lizardArgs} >> ${logFileUri.fsPath}`;
 		console.log(cmd);
 

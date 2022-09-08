@@ -63,6 +63,11 @@
           "default": true,
           "description": "Execute lizard linter on file save."
         },
+        "execution.ModifiedCyclomaticComplexity": {
+          "type": "boolean",
+          "default": true,
+          "description": "Calculates modified cyclomatic complexity number, which counts a switch/case with multiple cases as one CCN"
+        },
         "execution.logFilePath": {
           "type": "string",
           "default": ".log/lizard/",
