@@ -13,7 +13,7 @@ def exactly_number_of_parameters(par1, par2, par3, par4, par5):
     + "par 5" + par5)
 
 
-def too_long_function():
+def too_long_function():       
     """ Reports an entry which was done at the given date """
     print("1")
     print("2")

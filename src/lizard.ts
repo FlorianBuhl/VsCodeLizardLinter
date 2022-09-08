@@ -2,6 +2,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { text } from 'stream/consumers';
 
 //---------------------------------------------------------------------------------------------------------------------
 
@@ -34,7 +35,6 @@ let diagnosticCollection: vscode.DiagnosticCollection;
 
 let state: State = State.idle;
 let curLogFileUri: vscode.Uri;
-let lintByFileSave: boolean = false;
 
 const supportedExtensions: string[] = [".c", ".h", ".cpp", ".cs", ".gd", ".go", ".java", ".js", ".lua", ".m", ".php",
 ".py", ".rb", ".rs", ".scala", ".swift"];
@@ -52,34 +52,20 @@ export function createDiagnosticCollection(): vscode.DiagnosticCollection {
 
 export function activate() {
 	fileLogs = new Map();
-
-	if(vscode.workspace.getConfiguration('execution').get('ExecuteLizardLintOnFileSave')) {
-		lintByFileSave = true;
-	}
-	else {
-		lintByFileSave = false;
-	}
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 
-export function onDidSaveTextDocument(event: vscode.TextDocument){
-	if(true === lintByFileSave) {
-		lintUri(event.uri);
-	}
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
-export function onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent){
-	let affected = event.affectsConfiguration("thresholds.ExecuteLizardLintOnFileSave");
-	if(affected) {
-		if(vscode.workspace.getConfiguration('thresholds').get('ExecuteLizardLintOnFileSave')) {
-			lintByFileSave = true;
-		}
-		else {
-			lintByFileSave = false;
-		}
+/**
+ * onDidSaveTextDocument function shall be called when a text document is saved.
+ * It will execute a lizard lint on the document in case the settings allow that automatically
+ * lizard lints are done when a file is saved.
+ * @param textDocument text document which is stored
+ */
+export function onDidSaveTextDocument(textDocument: vscode.TextDocument){
+	const lintOnFileSave = vscode.workspace.getConfiguration('execution').get('ExecuteLizardLintOnFileSave');
+	if(true === lintOnFileSave){
+		lintUri(textDocument.uri);
 	}
 }
 

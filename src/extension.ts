@@ -30,10 +30,6 @@ export function activate(context: vscode.ExtensionContext) {
 	disposable = vscode.tasks.onDidEndTask(lizard.onDidEndTask);
 	context.subscriptions.push(disposable);
 
-	// onDidChangeConfiguration
-	disposable = vscode.workspace.onDidChangeConfiguration(lizard.onDidChangeConfiguration);
-	context.subscriptions.push(disposable);
-
 	lizard.activate();
 	lizardTableView.activate(context);
 
