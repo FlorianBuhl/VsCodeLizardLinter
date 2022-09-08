@@ -1,21 +1,26 @@
 import * as vscode from 'vscode';
 import * as lizard from './lizard';
 
+//---------------------------------------------------------------------------------------------------------------------
+
 export function activate(context: vscode.ExtensionContext){
 	let disposable = vscode.commands.registerCommand('lizard-linter.showTable', createTable);
 	context.subscriptions.push(disposable);
 }
 
-export function createTable() {
-  const panel = vscode.window.createWebviewPanel("lizardTable", "lizard table", vscode.ViewColumn.Beside);
+//---------------------------------------------------------------------------------------------------------------------
 
+export function createTable() {
   if(undefined !== vscode.window.activeTextEditor) {
 		const analyzedFunctions = lizard.getFileAnalysis(vscode.window.activeTextEditor.document.uri.fsPath);
     if(analyzedFunctions !== undefined) {
+      const panel = vscode.window.createWebviewPanel("lizardTable", "lizard table", vscode.ViewColumn.Beside);
       panel.webview.html = getLizardContent(analyzedFunctions);
      }
 	}
 }
+
+//---------------------------------------------------------------------------------------------------------------------
 
 export function getLizardContent(analyzedFunctions: lizard.FunctionAnalysis[]) {
   let tableHtmlString: string = "<table>";
@@ -26,9 +31,9 @@ export function getLizardContent(analyzedFunctions: lizard.FunctionAnalysis[]) {
   for(let functionAnalysis of analyzedFunctions){
     tableHtmlString += "<tr>";
     tableHtmlString += `<td>${functionAnalysis.name}</td>`;
-    tableHtmlString += `<td>${functionAnalysis.cyclomaticComplexity}</td>`;
-    tableHtmlString += `<td>${functionAnalysis.numOfParameters}</td>`;
-    tableHtmlString += `<td>${functionAnalysis.tokenCount}</td>`;
+    tableHtmlString += `<td class="${functionAnalysis.violatesCyclomaticComplexityThreshold}">${functionAnalysis.cyclomaticComplexity}</td>`;
+    tableHtmlString += `<td class="${functionAnalysis.violatesNumOfParameters}">${functionAnalysis.numOfParameters}</td>`;
+    tableHtmlString += `<td class="${functionAnalysis.violatesTokenCount}">${functionAnalysis.tokenCount}</td>`;
     tableHtmlString += "</tr>";
   }
   tableHtmlString += "</table>";
@@ -49,6 +54,10 @@ export function getLizardContent(analyzedFunctions: lizard.FunctionAnalysis[]) {
           width: 100%;
         }
 
+        td.true {
+          background-color: red;
+        }
+
         td, th {
           border: 1px solid;
           text-align: left;
@@ -61,3 +70,5 @@ export function getLizardContent(analyzedFunctions: lizard.FunctionAnalysis[]) {
   </html>`;
   return htmlFile;
 }
+
+//---------------------------------------------------------------------------------------------------------------------

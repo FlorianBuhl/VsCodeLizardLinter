@@ -19,6 +19,9 @@ export type FunctionAnalysis = {
 	tokenCount: number
 	start: number,
 	end: number,
+	violatesCyclomaticComplexityThreshold?: boolean,
+	violatesNumOfParameters?: boolean,
+	violatesTokenCount?: boolean,
 };
 
 type FileAnalysis = {
@@ -170,22 +173,18 @@ export function analyzeLizardLogFile(text: string): Map<vscode.Uri, vscode.Diagn
 			m = regex.exec(functionLine);
 			if(null !== m) {
 				const linesOfCodeWithoutComments = parseInt(m[1], 10);
-				const cyclomaticComplexity = parseInt(m[2], 10);
-				const tokenCount = parseInt(m[3], 10);
-				const numOfParameters = parseInt(m[4], 10);
-				const functionName = m[6];
-				const lineStartNumberInEditor = parseInt(m[7], 10) - 1;
-				const lineEndNumberInEditor = parseInt(m[8], 10) - 1;
-				const filePath = m[9];
-				let fileUri = vscode.Uri.file(filePath);
+				let fileUri = vscode.Uri.file(m[9]);
 
 				let functionAnalysis: FunctionAnalysis = {
-					name: functionName,
-					cyclomaticComplexity: cyclomaticComplexity,
-					tokenCount: tokenCount,
-					numOfParameters: numOfParameters,
-					start: lineStartNumberInEditor,
-					end: lineEndNumberInEditor,
+					name: m[6],
+					cyclomaticComplexity: parseInt(m[2], 10),
+					tokenCount: parseInt(m[3], 10),
+					numOfParameters: parseInt(m[4], 10),
+					start: parseInt(m[7], 10) - 1,
+					end: parseInt(m[8], 10) - 1,
+					violatesCyclomaticComplexityThreshold: false,
+					violatesNumOfParameters: false,
+					violatesTokenCount: false,
 				};
 
 				let currentFunctionsAnalysis = fileLogs.get(fileUri.fsPath);
@@ -222,8 +221,7 @@ export function analyzeLizardLogFile(text: string): Map<vscode.Uri, vscode.Diagn
 					diagnostics = [];
 				}
 
-				const range: vscode.Range = new vscode.Range(lineStartNumberInEditor, 0, lineStartNumberInEditor, 1);
-				const diagnosticsOfFunction = createDiagnosticEntries(range, cyclomaticComplexity, tokenCount, numOfParameters, functionName);
+				const diagnosticsOfFunction = createDiagnosticEntry(functionAnalysis);
 				diagnostics.push(...diagnosticsOfFunction);
 
 				previousUri = fileUri;
@@ -275,6 +273,53 @@ function createDiagnosticEntries(range: vscode.Range, cyclomaticComplexity: numb
 
 	return diagnostics;
 }
+
+//---------------------------------------------------------------------------------------------------------------------
+
+function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diagnostic[] {
+	let threshold: number | undefined;
+	let message: string;
+	const diagnostics: vscode.Diagnostic[] = [];
+	const lizardLinterConfiguration = vscode.workspace.getConfiguration('thresholds');
+	const range: vscode.Range = new vscode.Range(functionAnalysis.start, 0, functionAnalysis.start, 1);
+
+	// cyclomatic complexity
+	threshold = lizardLinterConfiguration.get("cyclomaticComplexity");
+	if(undefined === threshold) {
+		threshold = 0;
+	}
+	if(functionAnalysis.cyclomaticComplexity > threshold) {
+		functionAnalysis.violatesCyclomaticComplexityThreshold = true;
+		message = `Cyclomatic complexity of ${functionAnalysis.cyclomaticComplexity} higher then threshold (${threshold}) for function ${functionAnalysis.name}`;
+		diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
+	}
+
+	// token count
+	threshold = lizardLinterConfiguration.get("tokenCount");
+	if(undefined === threshold) {
+		threshold = 0;
+	}
+	if(functionAnalysis.tokenCount > threshold) {
+		functionAnalysis.violatesTokenCount = true;
+		message = `Token count of ${functionAnalysis.tokenCount} higher then threshold (${threshold}) for function ${functionAnalysis.name}`;
+		diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
+	}
+
+	// number of parameters
+	threshold = lizardLinterConfiguration.get("numOfParameters");
+	if(undefined === threshold) {
+		threshold = 0;
+	}
+	if(functionAnalysis.numOfParameters > threshold) {
+		functionAnalysis.violatesNumOfParameters = true;
+		message = `Number of parameters ${functionAnalysis.numOfParameters} higher then threshold (${threshold}) for function ${functionAnalysis.name}`;
+		diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
+	}
+
+	return diagnostics;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 
 export function getFileAnalysis(fsPath: string): FunctionAnalysis[] | undefined {
 	return fileLogs.get(fsPath);
