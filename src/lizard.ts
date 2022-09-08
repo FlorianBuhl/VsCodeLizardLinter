@@ -53,7 +53,7 @@ export function createDiagnosticCollection(): vscode.DiagnosticCollection {
 export function activate() {
 	fileLogs = new Map();
 
-	if(vscode.workspace.getConfiguration('thresholds').get('ExecuteLizardLintOnFileSave')) {
+	if(vscode.workspace.getConfiguration('execution').get('ExecuteLizardLintOnFileSave')) {
 		lintByFileSave = true;
 	}
 	else {
@@ -119,13 +119,28 @@ export function lintUri(uri: vscode.Uri){
 		state = State.inExecution;
 		curLogFileUri = logFileUri;
 
-		// create task
-		let cmd = `lizard ${uri.fsPath} >> ${logFileUri.fsPath}`;
-		let shellExecution = new vscode.ShellExecution(cmd);
+		// create shell command
+		const lizardLinterConfiguration = vscode.workspace.getConfiguration('thresholds');
 
+		// cyclomatic complexity threshold
+		let threshold = lizardLinterConfiguration.get("cyclomaticComplexity");
+		let lizardArgs = `-T cyclomatic_complexity=${threshold} `;
+
+		// number of parameters
+		threshold = lizardLinterConfiguration.get("numOfParameters");
+		lizardArgs += `-T parameter_count=${threshold} `;
+
+		// number of tokenCount
+		threshold = lizardLinterConfiguration.get("tokenCount");
+		lizardArgs += `-T token_count=${threshold}`;
+
+		let cmd = `lizard ${uri.fsPath} ${lizardArgs} >> ${logFileUri.fsPath}`;
+		console.log(cmd);
+
+		// create task
 		let task = new vscode.Task({type: "LizardExecution"},
-		vscode.workspace.workspaceFolders[0], "Execute lizard tool",
-		"lizard-linter", shellExecution);
+			vscode.workspace.workspaceFolders[0], "Execute lizard tool",
+			"lizard-linter", new vscode.ShellExecution(cmd));
 		task.presentationOptions.focus = false;
 		task.presentationOptions.reveal = vscode.TaskRevealKind.Never;
 

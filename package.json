@@ -10,7 +10,6 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:lizard-linter.helloWorld",
     "onCommand:lizard-linter.lint",
     "workspaceContains:**/*.c",
     "workspaceContains:**/*.h",
@@ -33,10 +32,6 @@
   "contributes": {
     "commands": [
       {
-        "command": "lizard-linter.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "lizard-linter.lint",
         "title": "Execute lint"
       },
@@ -46,32 +41,32 @@
       }
     ],
     "configuration": {
-      "title": "Thresholds",
+      "title": "Lizard-Linter",
       "properties": {
         "thresholds.cyclomaticComplexity": {
           "type": "number",
           "default": 2,
-          "description": "Cyclomatic complexity threshold."
+          "description": "Threshold for cyclomatic complexity."
         },
         "thresholds.tokenCount": {
           "type": "number",
           "default": 2,
-          "description": "Token count"
+          "description": "Threshold for Token count"
         },
         "thresholds.numOfParameters": {
           "type": "number",
           "default": 2,
-          "description": "Number of parameters"
+          "description": "Thresholds for number of parameters."
         },
-        "thresholds.ExecuteLizardLintOnFileSave": {
+        "execution.ExecuteLizardLintOnFileSave": {
           "type": "boolean",
           "default": true,
-          "description": "Execute lizard linter on file save"
+          "description": "Execute lizard linter on file save."
         },
-        "thresholds.logFilePath": {
+        "execution.logFilePath": {
           "type": "string",
           "default": ".log/lizard/",
-          "description": "Execute lizard linter on file save"
+          "description": "Path to the log files."
         }
       }
     }
