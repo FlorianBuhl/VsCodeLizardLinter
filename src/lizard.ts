@@ -56,35 +56,50 @@ export function activate() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-/**
- * onDidSaveTextDocument function shall be called when a text document is saved.
+/** onDidSaveTextDocument
+ * Is called by vscode when a text document is saved.
  * It will execute a lizard lint on the document in case the settings allow that automatically
  * lizard lints are done when a file is saved.
  * @param textDocument text document which is stored
  */
 export function onDidSaveTextDocument(textDocument: vscode.TextDocument){
+	// Load setting.
 	const lintOnFileSave = vscode.workspace.getConfiguration('execution').get('ExecuteLizardLintOnFileSave');
 	if(true === lintOnFileSave){
+		// Execute lint on text document.
 		lintUri(textDocument.uri);
 	}
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 
+/** onDidEndTask
+ * Is called by vscode when a task execution is finished.
+ * Analyzes lizard linter log files in case the tas which finished was executing a lizard lint.
+ * @param event Task end event information.
+ */
 export function onDidEndTask(event: vscode.TaskEndEvent){
-	if (event.execution.task.definition.type === "LizardExecution") {
-		analyzeLizardLogFiles([curLogFileUri]);
+	if (event.execution.task.definition.type === "lizard-linter") {
+		analyzeLizardLogFiles([vscode.Uri.file(event.execution.task.definition.logFilePath)]);
 		event.execution.terminate();
 	}
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 
-export function isFileExtensionIsSupported(uri: vscode.Uri){
+/** isUriSupported
+ * Checks if a lizard lint can be executed on the given uri.
+ * @param uri uri which is checked
+ * @returns true if lizard lint can be done, false otherwise.
+ */
+export function isUriSupported(uri: vscode.Uri){
 	if(fs.statSync(uri.fsPath).isDirectory()) {
+		// in case uri is a directory then execute lizard lint.
+		// todo: it can be improved by checking if in this directory are any files on which lizard lint can be done.
 		return true;
 	}
 	else {
+		// in case uri is a file then check if file extension is supported.
 		return supportedExtensions.includes(path.extname(uri.fsPath));
 	}
 }
@@ -92,49 +107,29 @@ export function isFileExtensionIsSupported(uri: vscode.Uri){
 //---------------------------------------------------------------------------------------------------------------------
 
 export function lintUri(uri: vscode.Uri){
-	if(undefined !== vscode.workspace.workspaceFolders && isFileExtensionIsSupported(uri)){
-		const logFolderUri = vscode.Uri.joinPath(vscode.workspace.workspaceFolders[0].uri, "log");
-		const openedFileName = path.parse(uri.fsPath).name;
-		const logFileUri = vscode.Uri.joinPath(logFolderUri, openedFileName + ".log");
+	if(undefined !== vscode.workspace.workspaceFolders && isUriSupported(uri)){
+		const logFilePath = getLogFilePath(uri);
+		const logFolderPath = path.basename(logFilePath);
+
+		console.log(logFilePath);
 
 		// create lizard log folder if it does not exist
-		if(!fs.existsSync(logFolderUri.fsPath)) {
-			fs.mkdirSync(logFolderUri.fsPath);
+		if(!fs.existsSync(logFolderPath)) {
+			fs.mkdirSync(logFolderPath);
 		}
 		// remove previously generated log file
-		if(fs.existsSync(logFileUri.fsPath)){
-			fs.rmSync(logFileUri.fsPath);
+		if(fs.existsSync(logFilePath)){
+			fs.rmSync(logFilePath);
 		}
 
 		// change state
 		state = State.inExecution;
-		curLogFileUri = logFileUri;
 
-		// create shell command
-		const lizardLinterConfiguration = vscode.workspace.getConfiguration('thresholds');
-
-		// cyclomatic complexity threshold
-		let threshold = lizardLinterConfiguration.get("cyclomaticComplexity");
-		let lizardArgs = `-T cyclomatic_complexity=${threshold} `;
-
-		// number of parameters
-		threshold = lizardLinterConfiguration.get("numOfParameters");
-		lizardArgs += `-T parameter_count=${threshold} `;
-
-		// number of tokenCount
-		threshold = lizardLinterConfiguration.get("tokenCount");
-		lizardArgs += `-T token_count=${threshold}`;
-
-		// modified cyclomatic complexity
-		if(vscode.workspace.getConfiguration("execution.ModifiedCyclomaticComplexity")){
-			lizardArgs += ' -m';
-		}
-
-		let cmd = `lizard ${uri.fsPath} ${lizardArgs} >> ${logFileUri.fsPath}`;
+		let cmd = calculateLizardShellCmd(uri, logFilePath);
 		console.log(cmd);
 
 		// create task
-		let task = new vscode.Task({type: "LizardExecution"},
+		let task = new vscode.Task({type: "lizard-linter", logFilePath: logFilePath},
 			vscode.workspace.workspaceFolders[0], "Execute lizard tool",
 			"lizard-linter", new vscode.ShellExecution(cmd));
 		task.presentationOptions.focus = false;
@@ -143,6 +138,73 @@ export function lintUri(uri: vscode.Uri){
 		// execute task
 		vscode.tasks.executeTask(task);
 	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+function getLogFilePath(uri: vscode.Uri): string {
+	let logFilePath: string | undefined = vscode.workspace.getConfiguration("execution").get("logFilePath");
+	if(logFilePath !== undefined) {
+		let workspaceFolder = vscode.workspace.getWorkspaceFolder(uri)?.uri.fsPath;
+		if(undefined === workspaceFolder) {
+			logFilePath = undefined;
+		}
+		else {
+			logFilePath = path.join(workspaceFolder, logFilePath);
+		}
+	}
+	// generates log file in the uri of the linted file.
+	if(logFilePath === undefined) {
+		logFilePath = uri.fsPath;
+	}
+
+	let logFileNamePath =  path.parse(uri.fsPath);
+	const logFileName = logFileNamePath.name + "_" + logFileNamePath.ext.substring(1) + ".log";
+	logFilePath = path.join(logFilePath, logFileName);
+
+	return logFilePath;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+/** calculateLizardShellCmd
+ * calculates the shell command for the lizard tool based on the extension settings.
+ * @param uri Uri on which lizard shall be executed
+ * @param logFilePath Path to the log file
+ * @returns shell command
+ */
+function calculateLizardShellCmd(uri: vscode.Uri, logFilePath: string): string {
+	let lizardArgs = "";
+	let threshold: number | undefined = undefined;
+
+	// cyclomatic complexity
+	threshold = vscode.workspace.getConfiguration("thresholds").get("cyclomaticComplexity");
+	if((undefined !== threshold) && (threshold > 0)) {
+		lizardArgs += `-T cyclomatic_complexity=${threshold} `;
+	}
+
+	// number of parameters
+	threshold = vscode.workspace.getConfiguration("thresholds").get("numOfParameters");
+	if((undefined !== threshold) && (threshold > 0)) {
+		lizardArgs += `-T parameter_count=${threshold} `;
+	}
+
+	// number of tokenCount
+	threshold = vscode.workspace.getConfiguration("thresholds").get("tokenCount");
+	if((undefined !== threshold) && (threshold > 0)) {
+		lizardArgs += `-T token_count=${threshold} `;
+	}
+
+	// modified cyclomatic complexity
+	if(vscode.workspace.getConfiguration("execution").get("ModifiedCyclomaticComplexity")){
+		lizardArgs += '-m ';
+	}
+
+	// shell cmd
+	let cmd = `lizard ${uri.fsPath} ${lizardArgs} >> ${logFilePath}`;
+	console.log(cmd);
+
+	return cmd;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -254,10 +316,8 @@ function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diag
 
 	// cyclomatic complexity
 	threshold = lizardLinterConfiguration.get("cyclomaticComplexity");
-	if(undefined === threshold) {
-		threshold = 0;
-	}
-	if(functionAnalysis.cyclomaticComplexity > threshold) {
+	if((undefined !== threshold)
+	&& (functionAnalysis.cyclomaticComplexity > threshold)) {
 		functionAnalysis.violatesCyclomaticComplexityThreshold = true;
 		message = `Cyclomatic complexity of ${functionAnalysis.cyclomaticComplexity} higher then threshold (${threshold}) for function ${functionAnalysis.name}`;
 		diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
@@ -265,10 +325,8 @@ function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diag
 
 	// token count
 	threshold = lizardLinterConfiguration.get("tokenCount");
-	if(undefined === threshold) {
-		threshold = 0;
-	}
-	if(functionAnalysis.tokenCount > threshold) {
+	if((undefined !== threshold)
+	&& (functionAnalysis.tokenCount > threshold)) {
 		functionAnalysis.violatesTokenCount = true;
 		message = `Token count of ${functionAnalysis.tokenCount} higher then threshold (${threshold}) for function ${functionAnalysis.name}`;
 		diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
@@ -276,10 +334,8 @@ function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diag
 
 	// number of parameters
 	threshold = lizardLinterConfiguration.get("numOfParameters");
-	if(undefined === threshold) {
-		threshold = 0;
-	}
-	if(functionAnalysis.numOfParameters > threshold) {
+	if((undefined !== threshold)
+	&& (functionAnalysis.numOfParameters > threshold)) {
 		functionAnalysis.violatesNumOfParameters = true;
 		message = `Number of parameters ${functionAnalysis.numOfParameters} higher then threshold (${threshold}) for function ${functionAnalysis.name}`;
 		diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));

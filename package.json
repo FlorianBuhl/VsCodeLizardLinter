@@ -82,11 +82,25 @@
         },
         "execution.logFilePath": {
           "type": "string",
-          "default": ".log/lizard/",
+          "default": "log",
           "description": "Path to the log files."
         }
       }
-    }
+    },
+    "taskDefinitions": [
+			{
+				"type": "lizard-linter",
+				"required": [
+					"logFilePath"
+				],
+				"properties": {
+					"logFilePath": {
+						"type": "string",
+						"description": "Path to the generated log file."
+					}
+				}
+			}
+		]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
