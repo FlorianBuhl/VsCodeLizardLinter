@@ -2,14 +2,8 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { text } from 'stream/consumers';
 
 //---------------------------------------------------------------------------------------------------------------------
-
-enum State {
-  idle = 1,
-  inExecution,
-}
 
 export type FunctionAnalysis = {
 	name: string,
@@ -33,9 +27,6 @@ type FileAnalysis = {
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
-let state: State = State.idle;
-let curLogFileUri: vscode.Uri;
-
 const supportedExtensions: string[] = [".c", ".h", ".cpp", ".cs", ".gd", ".go", ".java", ".js", ".lua", ".m", ".php",
 ".py", ".rb", ".rs", ".scala", ".swift"];
 
@@ -56,7 +47,7 @@ export function activate() {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-/** onDidSaveTextDocument
+/**
  * Is called by vscode when a text document is saved.
  * It will execute a lizard lint on the document in case the settings allow that automatically
  * lizard lints are done when a file is saved.
@@ -87,7 +78,7 @@ export function onDidEndTask(event: vscode.TaskEndEvent){
 
 //---------------------------------------------------------------------------------------------------------------------
 
-/** isUriSupported
+/**
  * Checks if a lizard lint can be executed on the given uri.
  * @param uri uri which is checked
  * @returns true if lizard lint can be done, false otherwise.
@@ -106,34 +97,35 @@ export function isUriSupported(uri: vscode.Uri){
 
 //---------------------------------------------------------------------------------------------------------------------
 
+/**
+ * Executes lizard lint on the given uri. A log file is generated which can be read by the user.
+ * @param uri uri on which lizard is executed.
+ */
 export function lintUri(uri: vscode.Uri){
-	if(undefined !== vscode.workspace.workspaceFolders && isUriSupported(uri)){
+	const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+	if((undefined !== workspaceFolder) && (isUriSupported(uri))){
 		const logFilePath = getLogFilePath(uri);
-		const logFolderPath = path.basename(logFilePath);
-
 		console.log(logFilePath);
 
 		// create lizard log folder if it does not exist
+		const logFolderPath = path.basename(logFilePath);
 		if(!fs.existsSync(logFolderPath)) {
 			fs.mkdirSync(logFolderPath);
 		}
+
 		// remove previously generated log file
 		if(fs.existsSync(logFilePath)){
 			fs.rmSync(logFilePath);
 		}
 
-		// change state
-		state = State.inExecution;
-
-		let cmd = calculateLizardShellCmd(uri, logFilePath);
-		console.log(cmd);
-
 		// create task
+		let cmd = calculateLizardShellCmd(uri, logFilePath);
 		let task = new vscode.Task({type: "lizard-linter", logFilePath: logFilePath},
-			vscode.workspace.workspaceFolders[0], "Execute lizard tool",
-			"lizard-linter", new vscode.ShellExecution(cmd));
+																workspaceFolder, "Execute lizard tool", "lizard-linter",
+																new vscode.ShellExecution(cmd));
 		task.presentationOptions.focus = false;
 		task.presentationOptions.reveal = vscode.TaskRevealKind.Never;
+		console.log(cmd);
 
 		// execute task
 		vscode.tasks.executeTask(task);
@@ -142,6 +134,12 @@ export function lintUri(uri: vscode.Uri){
 
 //---------------------------------------------------------------------------------------------------------------------
 
+/**
+ * Reports the log file path uri based on the extension settings.
+ * In case no valid path is configured then the log file is created next to the given uri parameter.
+ * @param uri uri on which the lizard tool is executed.
+ * @returns log file path.
+ */
 function getLogFilePath(uri: vscode.Uri): string {
 	let logFilePath: string | undefined = vscode.workspace.getConfiguration("execution").get("logFilePath");
 	if(logFilePath !== undefined) {
@@ -167,7 +165,7 @@ function getLogFilePath(uri: vscode.Uri): string {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-/** calculateLizardShellCmd
+/**
  * calculates the shell command for the lizard tool based on the extension settings.
  * @param uri Uri on which lizard shall be executed
  * @param logFilePath Path to the log file
@@ -210,14 +208,16 @@ function calculateLizardShellCmd(uri: vscode.Uri, logFilePath: string): string {
 //---------------------------------------------------------------------------------------------------------------------
 
 export function analyzeLizardLogFiles(lizardLogFilesUri: vscode.Uri[]){
-	console.log(`${lizardLogFilesUri}`);
 	let lizardDiagCol: Map<vscode.Uri, vscode.Diagnostic[] | undefined>;
+
+	// cycle through log files
 	for (let lizardLogFileUri of lizardLogFilesUri) {
 		if(fs.existsSync(lizardLogFileUri.fsPath)){
 			vscode.workspace.openTextDocument(lizardLogFileUri).then((document) => {
-			let text = document.getText();
-			lizardDiagCol = analyzeLizardLogFile(text);
+			let text = document.getText(); // load text of document
+			lizardDiagCol = analyzeLizardLogFile(text); // analyze file
 
+			// set the new diagnosis entries
 			for (let lintDiagColKey of lizardDiagCol.keys()) {
 				diagnosticCollection.set(lintDiagColKey, lizardDiagCol.get(lintDiagColKey));
 			}
