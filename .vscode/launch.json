@@ -21,9 +21,10 @@
 			"name": "Extension Tests",
 			"type": "extensionHost",
 			"request": "launch",
-			"args": [
+			"args": ["file:///${workspaceFolder}/out/test/suite/test_files",
 				"--extensionDevelopmentPath=${workspaceFolder}",
-				"--extensionTestsPath=${workspaceFolder}/out/test/suite/index"
+				"--extensionTestsPath=${workspaceFolder}/out/test/suite/index",
+				"--disable-extensions",
 			],
 			"outFiles": [
 				"${workspaceFolder}/out/test/**/*.js"
