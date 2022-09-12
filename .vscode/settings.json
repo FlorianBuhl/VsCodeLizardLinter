@@ -7,5 +7,10 @@
         "out": true // set this to false to include "out" folder in search results
     },
     // Turn off tsc task auto detection since we have the necessary tasks as npm scripts
-    "typescript.tsc.autoDetect": "off"
+    "typescript.tsc.autoDetect": "off",
+    "mocha.subdirectory": "C:\\d:\\Workspaces\\visual_studio_code_extensions\\lizard-linter\\out\\test\\suite",
+
+    "mochaExplorer.require": "ts-node/register",
+    "mochaExplorer.files": "src/test/**/*.ts",
+
 }
