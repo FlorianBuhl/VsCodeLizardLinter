@@ -10,11 +10,13 @@ export type FunctionAnalysis = {
 	name: string,
 	cyclomaticComplexity: number,
 	numOfParameters: number,
+	linesOfCodeWithoutComments: number,
 	tokenCount: number
 	start: number,
 	end: number,
 	violatesCyclomaticComplexityThreshold?: boolean,
 	violatesNumOfParameters?: boolean,
+	violatesLinesOfCodeWithoutComments?: boolean,
 	violatesTokenCount?: boolean,
 	path: vscode.Uri,
 };
@@ -291,18 +293,19 @@ export function analyzeLizardLogFile(text: string): Map<vscode.Uri, vscode.Diagn
 			regex = /\s?(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+) (.*)@(\d+)-(\d+)@(\S+)/gm;
 			m = regex.exec(functionLine);
 			if(null !== m) {
-				const linesOfCodeWithoutComments = parseInt(m[1], 10);
 				let fileUri = vscode.Uri.file(m[9]);
 
 				let functionAnalysis: FunctionAnalysis = {
 					name: m[6],
 					cyclomaticComplexity: parseInt(m[2], 10),
-					tokenCount: parseInt(m[3], 10),
 					numOfParameters: parseInt(m[4], 10),
+					linesOfCodeWithoutComments: parseInt(m[1], 10),
+					tokenCount: parseInt(m[3], 10),
 					start: parseInt(m[7], 10) - 1,
 					end: parseInt(m[8], 10) - 1,
 					violatesCyclomaticComplexityThreshold: false,
 					violatesNumOfParameters: false,
+					violatesLinesOfCodeWithoutComments: false,
 					violatesTokenCount: false,
 					path: vscode.Uri.file(m[9]),
 				};
@@ -354,38 +357,69 @@ export function analyzeLizardLogFile(text: string): Map<vscode.Uri, vscode.Diagn
 
 //---------------------------------------------------------------------------------------------------------------------
 
+/**
+ * Creates diagnostic entries for the given function analysis.
+ * It checks the cyclomatic complexity, number of parameters, the lines of code without comments and the token count.
+ * Checking is done by loading the configured threshold of the settings and comparing it against the function value.
+ * @param functionAnalysis function analysis data object.
+ * @returns an array holding the diagnostic entries.
+ */
 function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diagnostic[] {
 	let threshold: number | undefined;
 	let message: string;
+
 	const diagnostics: vscode.Diagnostic[] = [];
+	let diagnostic;
+
 	const lizardLinterConfiguration = vscode.workspace.getConfiguration('thresholds');
 	const range: vscode.Range = new vscode.Range(functionAnalysis.start, 0, functionAnalysis.start, 1);
 
-	// cyclomatic complexity
-	threshold = lizardLinterConfiguration.get("cyclomaticComplexity");
+	// number of parameters
+	threshold = lizardLinterConfiguration.get("numOfParameters");
 	if((undefined !== threshold)
-	&& (functionAnalysis.cyclomaticComplexity > threshold)) {
-		functionAnalysis.violatesCyclomaticComplexityThreshold = true;
-		message = `${functionAnalysis.name}: Cyclomatic complexity of ${functionAnalysis.cyclomaticComplexity} higher then threshold (${threshold})`;
-		diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
+	&& (threshold > 0)
+	&& (functionAnalysis.numOfParameters > threshold)) {
+		functionAnalysis.violatesNumOfParameters = true;
+		message = `${functionAnalysis.name}: Number of parameters ${functionAnalysis.numOfParameters} higher then threshold (${threshold})`;
+		diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
+		diagnostic.source = "lizard-linter";
+		diagnostics.push(diagnostic);
+	}
+
+	// lines of code without comments
+	threshold = lizardLinterConfiguration.get("linesOfCodeWithoutComments");
+	if((undefined !== threshold)
+	&& (threshold > 0)
+	&& (functionAnalysis.linesOfCodeWithoutComments > threshold)) {
+		functionAnalysis.violatesLinesOfCodeWithoutComments = true;
+		message = `${functionAnalysis.name}: Number of lines without comments ${functionAnalysis.linesOfCodeWithoutComments} higher then threshold (${threshold})`;
+		diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
+		diagnostic.source = "lizard-linter";
+		diagnostics.push(diagnostic);
 	}
 
 	// token count
 	threshold = lizardLinterConfiguration.get("tokenCount");
 	if((undefined !== threshold)
+	&& (threshold > 0)
 	&& (functionAnalysis.tokenCount > threshold)) {
 		functionAnalysis.violatesTokenCount = true;
 		message = `${functionAnalysis.name}: Token count of ${functionAnalysis.tokenCount} higher then threshold (${threshold})`;
-		diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
+		diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
+		diagnostic.source = "lizard-linter";
+		diagnostics.push(diagnostic);
 	}
 
-	// number of parameters
-	threshold = lizardLinterConfiguration.get("numOfParameters");
+	// cyclomatic complexity
+	threshold = lizardLinterConfiguration.get("cyclomaticComplexity");
 	if((undefined !== threshold)
-	&& (functionAnalysis.numOfParameters > threshold)) {
-		functionAnalysis.violatesNumOfParameters = true;
-		message = `${functionAnalysis.name}: Number of parameters ${functionAnalysis.numOfParameters} higher then threshold (${threshold})`;
-		diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
+	&& (threshold > 0)
+	&& (functionAnalysis.cyclomaticComplexity > threshold)) {
+		functionAnalysis.violatesCyclomaticComplexityThreshold = true;
+		message = `${functionAnalysis.name}: Cyclomatic complexity of ${functionAnalysis.cyclomaticComplexity} higher then threshold (${threshold})`;
+		diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
+		diagnostic.source = "lizard-linter";
+		diagnostics.push(diagnostic);
 	}
 
 	return diagnostics;
