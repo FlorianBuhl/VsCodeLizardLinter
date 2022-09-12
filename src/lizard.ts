@@ -2,6 +2,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { performance } from 'perf_hooks';
 
 //---------------------------------------------------------------------------------------------------------------------
 
@@ -16,11 +17,6 @@ export type FunctionAnalysis = {
 	violatesNumOfParameters?: boolean,
 	violatesTokenCount?: boolean,
 	path: vscode.Uri,
-};
-
-type FileAnalysis = {
-	filePath: string,
-	functionAnalysis: FunctionAnalysis[],
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -41,8 +37,40 @@ export function createDiagnosticCollection(): vscode.DiagnosticCollection {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-export function activate() {
+export function activate(context: vscode.ExtensionContext) {
 	fileLogs = new Map();
+
+	let disposable: vscode.Disposable;
+
+	// lint command
+	disposable = vscode.commands.registerCommand('lizard-linter.lint', async() => {
+		if((undefined !== vscode.window.activeTextEditor)) {
+			let start = performance.now();
+			await lintUri(vscode.window.activeTextEditor.document.uri);
+			let end = performance.now();
+			const duration = end - start;
+			console.log(`command duration: ${duration}`);
+		}
+	});
+	context.subscriptions.push(disposable);
+
+	// onDidSaveTextDocument
+	disposable = vscode.workspace.onDidSaveTextDocument((textDocument) => {
+		if((true === vscode.workspace.getConfiguration('execution').get('ExecuteLizardLintOnFileSave'))
+		&& (isUriSupported(textDocument.uri))){
+			lintUri(textDocument.uri);	// Execute lint on text document.
+		}
+	});
+	context.subscriptions.push(disposable);
+
+	// onDidOpenTextDocument
+	disposable = vscode.workspace.onDidOpenTextDocument((textDocument) => {
+		if((true === vscode.workspace.getConfiguration('execution').get('ExecuteLizardLintOnFileOpen'))
+		&& (isUriSupported(textDocument.uri))){
+			lintUri(textDocument.uri);	// Execute lint on text document.
+		}
+	});
+	context.subscriptions.push(disposable);
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -59,20 +87,6 @@ export function onDidSaveTextDocument(textDocument: vscode.TextDocument){
 	if(true === lintOnFileSave){
 		// Execute lint on text document.
 		lintUri(textDocument.uri);
-	}
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
-/** onDidEndTask
- * Is called by vscode when a task execution is finished.
- * Analyzes lizard linter log files in case the tas which finished was executing a lizard lint.
- * @param event Task end event information.
- */
-export function onDidEndTask(event: vscode.TaskEndEvent){
-	if (event.execution.task.definition.type === "lizard-linter") {
-		analyzeLizardLogFiles([vscode.Uri.file(event.execution.task.definition.logFilePath)]);
-		event.execution.terminate();
 	}
 }
 
@@ -153,6 +167,7 @@ export async function lintUri(uri: vscode.Uri): Promise<void>{
 	return promise;
 }
 
+
 //---------------------------------------------------------------------------------------------------------------------
 
 /**
@@ -162,7 +177,9 @@ export async function lintUri(uri: vscode.Uri): Promise<void>{
  * @returns log file path.
  */
 function getLogFilePath(uri: vscode.Uri): string {
+	// get relative logFilepath from settings.
 	let logFilePath: string | undefined = vscode.workspace.getConfiguration("execution").get("logFilePath");
+
 	if(logFilePath !== undefined) {
 		let workspaceFolder = vscode.workspace.getWorkspaceFolder(uri)?.uri.fsPath;
 		if(undefined === workspaceFolder) {
@@ -172,13 +189,23 @@ function getLogFilePath(uri: vscode.Uri): string {
 			logFilePath = path.join(workspaceFolder, logFilePath);
 		}
 	}
+
 	// generates log file in the uri of the linted file.
 	if(logFilePath === undefined) {
 		logFilePath = uri.fsPath;
 	}
 
-	let logFileNamePath =  path.parse(uri.fsPath);
-	const logFileName = logFileNamePath.name + "_" + logFileNamePath.ext.substring(1) + ".log";
+	// compute file name based on the uri (file name and file extension) which shall be linted.
+	let uriPath =  path.parse(uri.fsPath);
+	let logFileName: string;
+	if(uriPath.ext) {
+		// logFileName = fileName_fileExt.log
+		logFileName = uriPath.name + "_" + uriPath.ext.substring(1) + ".log";
+	} else {
+		// logFileName = folderName.log
+		logFileName = uriPath.name + ".log";
+	}
+
 	logFilePath = path.join(logFilePath, logFileName);
 
 	return logFilePath;
@@ -228,13 +255,13 @@ function calculateLizardShellCmd(uri: vscode.Uri, logFilePath: string): string {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-export function analyzeLizardLogFiles(lizardLogFilesUri: vscode.Uri[]){
+export async function analyzeLizardLogFiles(lizardLogFilesUri: vscode.Uri[]){
 	let lizardDiagCol: Map<vscode.Uri, vscode.Diagnostic[] | undefined>;
 
 	// cycle through log files
 	for (let lizardLogFileUri of lizardLogFilesUri) {
 		if(fs.existsSync(lizardLogFileUri.fsPath)){
-			vscode.workspace.openTextDocument(lizardLogFileUri).then((document) => {
+			let document = await vscode.workspace.openTextDocument(lizardLogFileUri);
 			let text = document.getText(); // load text of document
 			lizardDiagCol = analyzeLizardLogFile(text); // analyze file
 
@@ -242,7 +269,6 @@ export function analyzeLizardLogFiles(lizardLogFilesUri: vscode.Uri[]){
 			for (let lintDiagColKey of lizardDiagCol.keys()) {
 				diagnosticCollection.set(lintDiagColKey, lizardDiagCol.get(lintDiagColKey));
 			}
-		});
 		}
 	}
 }
@@ -340,7 +366,7 @@ function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diag
 	if((undefined !== threshold)
 	&& (functionAnalysis.cyclomaticComplexity > threshold)) {
 		functionAnalysis.violatesCyclomaticComplexityThreshold = true;
-		message = `Cyclomatic complexity of ${functionAnalysis.cyclomaticComplexity} higher then threshold (${threshold}) for function ${functionAnalysis.name}`;
+		message = `${functionAnalysis.name}: Cyclomatic complexity of ${functionAnalysis.cyclomaticComplexity} higher then threshold (${threshold})`;
 		diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
 	}
 
@@ -349,7 +375,7 @@ function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diag
 	if((undefined !== threshold)
 	&& (functionAnalysis.tokenCount > threshold)) {
 		functionAnalysis.violatesTokenCount = true;
-		message = `Token count of ${functionAnalysis.tokenCount} higher then threshold (${threshold}) for function ${functionAnalysis.name}`;
+		message = `${functionAnalysis.name}: Token count of ${functionAnalysis.tokenCount} higher then threshold (${threshold})`;
 		diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
 	}
 
@@ -358,7 +384,7 @@ function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diag
 	if((undefined !== threshold)
 	&& (functionAnalysis.numOfParameters > threshold)) {
 		functionAnalysis.violatesNumOfParameters = true;
-		message = `Number of parameters ${functionAnalysis.numOfParameters} higher then threshold (${threshold}) for function ${functionAnalysis.name}`;
+		message = `${functionAnalysis.name}: Number of parameters ${functionAnalysis.numOfParameters} higher then threshold (${threshold})`;
 		diagnostics.push(new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning));
 	}
 
