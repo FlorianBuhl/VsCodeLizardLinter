@@ -101,35 +101,56 @@ export function isUriSupported(uri: vscode.Uri){
  * Executes lizard lint on the given uri. A log file is generated which can be read by the user.
  * @param uri uri on which lizard is executed.
  */
-export function lintUri(uri: vscode.Uri){
-	const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
-	if((undefined !== workspaceFolder) && (isUriSupported(uri))){
-		const logFilePath = getLogFilePath(uri);
-		console.log(logFilePath);
+export async function lintUri(uri: vscode.Uri): Promise<void>{
+	const promise = new Promise<void>(async(resolve, reject) => {
+		setTimeout(async() => {
+		// get workspace folder belonging to given uri.
+		const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+		if((undefined !== workspaceFolder) && (isUriSupported(uri))) {
+			const logFilePath = getLogFilePath(uri);
 
-		// create lizard log folder if it does not exist
-		const logFolderPath = path.basename(logFilePath);
-		if(!fs.existsSync(logFolderPath)) {
-			fs.mkdirSync(logFolderPath);
+			// create lizard log folder if it does not exist
+			const logFolderPath = path.basename(logFilePath);
+			if(!fs.existsSync(logFolderPath)) {
+				fs.mkdirSync(logFolderPath);
+			}
+
+			// remove previously generated log file
+			if(fs.existsSync(logFilePath)){
+				fs.rmSync(logFilePath);
+			}
+
+			// create task
+			let cmd = calculateLizardShellCmd(uri, logFilePath);
+			let task = new vscode.Task({type: "lizard-linter", logFilePath: logFilePath},
+																	workspaceFolder, "Execute lizard tool", "lizard-linter",
+																	new vscode.ShellExecution(cmd));
+			task.presentationOptions.focus = false;
+			task.presentationOptions.reveal = vscode.TaskRevealKind.Never;
+			console.log(cmd);
+
+			// execute task
+			await vscode.tasks.executeTask(task);
+			let disposable = vscode.tasks.onDidEndTask(async(event) => {
+				if (event.execution.task.definition.type === "lizard-linter") {
+					disposable.dispose();
+					await analyzeLizardLogFiles([vscode.Uri.file(event.execution.task.definition.logFilePath)]);
+					event.execution.terminate();
+					resolve();
+				}
+			});
 		}
-
-		// remove previously generated log file
-		if(fs.existsSync(logFilePath)){
-			fs.rmSync(logFilePath);
+		else {
+			if(false === isUriSupported(uri)) {
+				reject( new Error("Requested Uri not supported"));
+			} else {
+				reject(new Error("No workspace"));
+			}
 		}
+		}, 5000);
+		});
 
-		// create task
-		let cmd = calculateLizardShellCmd(uri, logFilePath);
-		let task = new vscode.Task({type: "lizard-linter", logFilePath: logFilePath},
-																workspaceFolder, "Execute lizard tool", "lizard-linter",
-																new vscode.ShellExecution(cmd));
-		task.presentationOptions.focus = false;
-		task.presentationOptions.reveal = vscode.TaskRevealKind.Never;
-		console.log(cmd);
-
-		// execute task
-		vscode.tasks.executeTask(task);
-	}
+	return promise;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
