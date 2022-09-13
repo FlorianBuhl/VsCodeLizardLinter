@@ -202,27 +202,27 @@ suite('Extension Test Suite', () => {
 
   const basePath = path.join(__dirname, 'test_files');
   testFileExtension(basePath, 'c', 'c', 'bad_function');
-  testFileExtension(basePath, 'c', 'h', 'bad_function');
-  testFileExtension(basePath, 'cpp', 'cpp', 'bad_function');
-  testFileExtension(basePath, 'java', 'java', 'TestClass::bad_function');
-  testFileExtension(basePath, 'CSharp', 'cs', 'bad_function');
-  testFileExtension(basePath, 'JavaScript', 'js', 'bad_function');
-  testFileExtension(basePath, 'ObjectiveC', 'm', 'bad_function');
-  testFileExtension(basePath, 'swift', 'swift', 'bad_function');
-  testFileExtension(basePath, 'python', 'py', 'bad_function');
-  testFileExtension(basePath, 'ruby', 'rb', 'bad_function');
-  testFileExtension(basePath, 'php', 'php', 'bad_function');
-  testFileExtension(basePath, 'scala', 'scala', 'bad_function');
-  testFileExtension(basePath, 'GDScript', 'gd', 'bad_function');
-  testFileExtension(basePath, 'GoLang', 'go', 'bad_function');
-  testFileExtension(basePath, 'lua', 'lua', 'bad_function');
-  testFileExtension(basePath, 'rust', 'rs', 'bad_function');
+  // testFileExtension(basePath, 'c', 'h', 'bad_function');
+  // testFileExtension(basePath, 'cpp', 'cpp', 'bad_function');
+  // testFileExtension(basePath, 'java', 'java', 'TestClass::bad_function');
+  // testFileExtension(basePath, 'CSharp', 'cs', 'bad_function');
+  // testFileExtension(basePath, 'JavaScript', 'js', 'bad_function');
+  // testFileExtension(basePath, 'ObjectiveC', 'm', 'bad_function');
+  // testFileExtension(basePath, 'swift', 'swift', 'bad_function');
+  // testFileExtension(basePath, 'python', 'py', 'bad_function');
+  // testFileExtension(basePath, 'ruby', 'rb', 'bad_function');
+  // testFileExtension(basePath, 'php', 'php', 'bad_function');
+  // testFileExtension(basePath, 'scala', 'scala', 'bad_function');
+  // testFileExtension(basePath, 'GDScript', 'gd', 'bad_function');
+  // testFileExtension(basePath, 'GoLang', 'go', 'bad_function');
+  // testFileExtension(basePath, 'lua', 'lua', 'bad_function');
+  // testFileExtension(basePath, 'rust', 'rs', 'bad_function');
 
   //---------------------------------------------------------------------------------------------------------------------
 
-  testBasicLintFunctionality(basePath);
-  testDisablingThreshold(basePath);
-  testModifiedCyclomaticComplexity(basePath);
+  // testBasicLintFunctionality(basePath);
+  // testDisablingThreshold(basePath);
+  // testModifiedCyclomaticComplexity(basePath);
 
   //---------------------------------------------------------------------------------------------------------------------
 
