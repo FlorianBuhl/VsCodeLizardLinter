@@ -121,9 +121,8 @@ async function fsExists(uri: vscode.Uri): Promise<boolean> {
  * Executes lizard lint on the given uri. A log file is generated which can be read by the user.
  * @param uri uri on which lizard is executed.
  */
-export async function lintUri(uri: vscode.Uri): Promise<void>{
+export async function lintUri(uri: vscode.Uri): Promise<void> {
 	const promise = new Promise<void>(async(resolve, reject) => {
-		setTimeout(async() => {
 		// get workspace folder belonging to given uri.
 		const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
 		if((undefined !== workspaceFolder) && (await isUriSupported(uri))) {
@@ -175,9 +174,7 @@ export async function lintUri(uri: vscode.Uri): Promise<void>{
 				reject(new Error("No workspace"));
 			}
 		}
-		}, 10000);
-		});
-
+	});
 	return promise;
 }
 
