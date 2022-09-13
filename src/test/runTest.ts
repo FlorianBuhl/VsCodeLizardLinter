@@ -1,5 +1,4 @@
 import * as path from 'path';
-
 import { runTests } from '@vscode/test-electron';
 
 async function main() {
@@ -13,7 +12,9 @@ async function main() {
 		const extensionTestsPath = path.resolve(__dirname, './suite/index');
 
 		// Download VS Code, unzip it and run the integration test
-		await runTests({ extensionDevelopmentPath, extensionTestsPath });
+		let testWorkspace = path.normalize(path.resolve(__dirname, './suite/test_files/'));
+		console.log(testWorkspace);
+		await runTests({ extensionDevelopmentPath, extensionTestsPath, launchArgs: [testWorkspace, "--disable-extensions"]});
 	} catch (err) {
 		console.error('Failed to run tests');
 		process.exit(1);
