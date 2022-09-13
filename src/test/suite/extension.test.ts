@@ -200,7 +200,7 @@ suite('Extension Test Suite', () => {
 
   //---------------------------------------------------------------------------------------------------------------------
 
-  const basePath = path.join(__dirname, 'test_files');
+  const basePath = path.resolve(__dirname, '../../../src/test/suite/test_files/');
   testFileExtension(basePath, 'c', 'c', 'bad_function');
   // testFileExtension(basePath, 'c', 'h', 'bad_function');
   // testFileExtension(basePath, 'cpp', 'cpp', 'bad_function');
