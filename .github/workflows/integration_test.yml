@@ -16,6 +16,9 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 16.x
+    - run: curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+    - run: python get-pip.py
+    - run: pip install lizard
     - run: npm install
     - run: xvfb-run -a npm test
       if: runner.os == 'Linux'
