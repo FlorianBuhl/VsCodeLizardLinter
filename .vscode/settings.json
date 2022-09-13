@@ -12,5 +12,8 @@
 
     "mochaExplorer.require": "ts-node/register",
     "mochaExplorer.files": "src/test/**/*.ts",
+    "cSpell.words": [
+        "xvfb"
+    ],
 
 }
