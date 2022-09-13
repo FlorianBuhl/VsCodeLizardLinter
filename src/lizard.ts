@@ -1,6 +1,5 @@
 // Imports
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
 import { performance } from 'perf_hooks';
 
@@ -39,7 +38,7 @@ export function createDiagnosticCollection(): vscode.DiagnosticCollection {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
 	fileLogs = new Map();
 
 	let disposable: vscode.Disposable;
@@ -57,39 +56,24 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(disposable);
 
 	// onDidSaveTextDocument
-	disposable = vscode.workspace.onDidSaveTextDocument((textDocument) => {
+	disposable = vscode.workspace.onDidSaveTextDocument(async (textDocument) => {
+		// check if setting to lint on file save is enabled
+		// check if uri can be linted
 		if((true === vscode.workspace.getConfiguration('execution').get('ExecuteLizardLintOnFileSave'))
-		&& (isUriSupported(textDocument.uri))){
+		&& (await isUriSupported(textDocument.uri))){
 			lintUri(textDocument.uri);	// Execute lint on text document.
 		}
 	});
 	context.subscriptions.push(disposable);
 
 	// onDidOpenTextDocument
-	disposable = vscode.workspace.onDidOpenTextDocument((textDocument) => {
+	disposable = vscode.workspace.onDidOpenTextDocument(async (textDocument) => {
 		if((true === vscode.workspace.getConfiguration('execution').get('ExecuteLizardLintOnFileOpen'))
-		&& (isUriSupported(textDocument.uri))){
+		&& (await isUriSupported(textDocument.uri))){
 			lintUri(textDocument.uri);	// Execute lint on text document.
 		}
 	});
 	context.subscriptions.push(disposable);
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
-/**
- * Is called by vscode when a text document is saved.
- * It will execute a lizard lint on the document in case the settings allow that automatically
- * lizard lints are done when a file is saved.
- * @param textDocument text document which is stored
- */
-export function onDidSaveTextDocument(textDocument: vscode.TextDocument){
-	// Load setting.
-	const lintOnFileSave = vscode.workspace.getConfiguration('execution').get('ExecuteLizardLintOnFileSave');
-	if(true === lintOnFileSave){
-		// Execute lint on text document.
-		lintUri(textDocument.uri);
-	}
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -99,8 +83,9 @@ export function onDidSaveTextDocument(textDocument: vscode.TextDocument){
  * @param uri uri which is checked
  * @returns true if lizard lint can be done, false otherwise.
  */
-export function isUriSupported(uri: vscode.Uri){
-	if(fs.statSync(uri.fsPath).isDirectory()) {
+export async function isUriSupported(uri: vscode.Uri){
+	const fsStat = await vscode.workspace.fs.stat(uri);
+	if(fsStat.type === vscode.FileType.Directory){
 		// in case uri is a directory then execute lizard lint.
 		// todo: it can be improved by checking if in this directory are any files on which lizard lint can be done.
 		return true;
@@ -109,6 +94,19 @@ export function isUriSupported(uri: vscode.Uri){
 		// in case uri is a file then check if file extension is supported.
 		return supportedExtensions.includes(path.extname(uri.fsPath));
 	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+async function fsExists(uri: vscode.Uri): Promise<boolean> {
+	let isFsExisting = false;
+	try {
+		await vscode.workspace.fs.stat(uri);
+		isFsExisting = true;
+	} catch {
+		isFsExisting = false;
+	}
+	return isFsExisting;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -122,18 +120,26 @@ export async function lintUri(uri: vscode.Uri): Promise<void>{
 		setTimeout(async() => {
 		// get workspace folder belonging to given uri.
 		const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
-		if((undefined !== workspaceFolder) && (isUriSupported(uri))) {
+		if((undefined !== workspaceFolder) && (await isUriSupported(uri))) {
 			const logFilePath = getLogFilePath(uri);
 
-			// create lizard log folder if it does not exist
-			const logFolderPath = path.basename(logFilePath);
-			if(!fs.existsSync(logFolderPath)) {
-				fs.mkdirSync(logFolderPath);
+			// create lizard log directory if it does not exist
+			const logFolderPath = path.dirname(logFilePath);
+			try{
+				if(false === await fsExists(vscode.Uri.file(logFolderPath))) {
+					await vscode.workspace.fs.createDirectory(vscode.Uri.file(logFolderPath));
+				}
+			} catch(err) {
+				console.error(`Create lizard log directory if it does not exist ${logFolderPath}\n${err}`);
 			}
 
 			// remove previously generated log file
-			if(fs.existsSync(logFilePath)){
-				fs.rmSync(logFilePath);
+			try{
+				if(true === await fsExists(vscode.Uri.file(logFilePath))) {
+					await vscode.workspace.fs.delete(vscode.Uri.file(logFilePath));
+				}
+			} catch(err) {
+				console.error(`Remove previously generated log file ${logFilePath}\n${err}`);
 			}
 
 			// create task
@@ -157,13 +163,13 @@ export async function lintUri(uri: vscode.Uri): Promise<void>{
 			});
 		}
 		else {
-			if(false === isUriSupported(uri)) {
+			if(false === await isUriSupported(uri)) {
 				reject( new Error("Requested Uri not supported"));
 			} else {
 				reject(new Error("No workspace"));
 			}
 		}
-		}, 5000);
+		}, 10000);
 		});
 
 	return promise;
@@ -250,8 +256,6 @@ function calculateLizardShellCmd(uri: vscode.Uri, logFilePath: string): string {
 
 	// shell cmd
 	let cmd = `lizard ${uri.fsPath} ${lizardArgs} >> ${logFilePath}`;
-	console.log(cmd);
-
 	return cmd;
 }
 
@@ -262,7 +266,7 @@ export async function analyzeLizardLogFiles(lizardLogFilesUri: vscode.Uri[]){
 
 	// cycle through log files
 	for (let lizardLogFileUri of lizardLogFilesUri) {
-		if(fs.existsSync(lizardLogFileUri.fsPath)){
+		if(true === await fsExists(lizardLogFileUri)) {
 			let document = await vscode.workspace.openTextDocument(lizardLogFileUri);
 			let text = document.getText(); // load text of document
 			lizardDiagCol = analyzeLizardLogFile(text); // analyze file
@@ -371,11 +375,11 @@ function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diag
 	const diagnostics: vscode.Diagnostic[] = [];
 	let diagnostic;
 
-	const lizardLinterConfiguration = vscode.workspace.getConfiguration('thresholds');
+	const lizardThresholdConfig = vscode.workspace.getConfiguration('thresholds');
 	const range: vscode.Range = new vscode.Range(functionAnalysis.start, 0, functionAnalysis.start, 1);
 
 	// number of parameters
-	threshold = lizardLinterConfiguration.get("numOfParameters");
+	threshold = lizardThresholdConfig.get("numOfParameters");
 	if((undefined !== threshold)
 	&& (threshold > 0)
 	&& (functionAnalysis.numOfParameters > threshold)) {
@@ -387,7 +391,7 @@ function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diag
 	}
 
 	// lines of code without comments
-	threshold = lizardLinterConfiguration.get("linesOfCodeWithoutComments");
+	threshold = lizardThresholdConfig.get("linesOfCodeWithoutComments");
 	if((undefined !== threshold)
 	&& (threshold > 0)
 	&& (functionAnalysis.linesOfCodeWithoutComments > threshold)) {
@@ -399,7 +403,7 @@ function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diag
 	}
 
 	// token count
-	threshold = lizardLinterConfiguration.get("tokenCount");
+	threshold = lizardThresholdConfig.get("tokenCount");
 	if((undefined !== threshold)
 	&& (threshold > 0)
 	&& (functionAnalysis.tokenCount > threshold)) {
@@ -411,7 +415,7 @@ function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diag
 	}
 
 	// cyclomatic complexity
-	threshold = lizardLinterConfiguration.get("cyclomaticComplexity");
+	threshold = lizardThresholdConfig.get("cyclomaticComplexity");
 	if((undefined !== threshold)
 	&& (threshold > 0)
 	&& (functionAnalysis.cyclomaticComplexity > threshold)) {
