@@ -84,16 +84,22 @@ export async function activate(context: vscode.ExtensionContext) {
  * @returns true if lizard lint can be done, false otherwise.
  */
 export async function isUriSupported(uri: vscode.Uri){
-	const fsStat = await vscode.workspace.fs.stat(uri);
-	if(fsStat.type === vscode.FileType.Directory){
-		// in case uri is a directory then execute lizard lint.
-		// todo: it can be improved by checking if in this directory are any files on which lizard lint can be done.
-		return true;
+	try{
+		const fsStat = await vscode.workspace.fs.stat(uri);
+		if(fsStat.type === vscode.FileType.Directory){
+			// in case uri is a directory then execute lizard lint.
+			// todo: it can be improved by checking if in this directory are any files on which lizard lint can be done.
+			return true;
+		}
+		else {
+			// in case uri is a file then check if file extension is supported.
+			return supportedExtensions.includes(path.extname(uri.fsPath));
+		}
 	}
-	else {
-		// in case uri is a file then check if file extension is supported.
-		return supportedExtensions.includes(path.extname(uri.fsPath));
+	catch(err){
+		console.error(`isUriSupported. Not possible to do vscode.workspace.fs.stat(uri) with ${uri}\n${err}`);
 	}
+
 }
 
 //---------------------------------------------------------------------------------------------------------------------
