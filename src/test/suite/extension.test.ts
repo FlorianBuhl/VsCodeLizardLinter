@@ -5,8 +5,8 @@ import * as lizard from './../../lizard';
 
 //---------------------------------------------------------------------------------------------------------------------
 
-async function checkFileExtension(pathToTestFolder: string, language: string, fileEnding: string, badFunctionName: string) {
-  suite(`Test suite. The lizard tool can handle ${language} files`, () => {
+async function testFileExtension(pathToTestFolder: string, language: string, fileEnding: string, badFunctionName: string) {
+  suite(`File extension suite. The lizard tool can handle ${language} files`, () => {
 
     const goodPath = path.join(pathToTestFolder, language, 'good.') + fileEnding;
     const badPath = path.join(pathToTestFolder, language, 'bad.') + fileEnding;
@@ -52,29 +52,7 @@ async function checkFileExtension(pathToTestFolder: string, language: string, fi
 
 //---------------------------------------------------------------------------------------------------------------------
 
-suite('Extension Test Suite', () => {
-	vscode.window.showInformationMessage('Start all tests.');
-
-  const basePath = path.join(__dirname, 'test_files');
-  checkFileExtension(basePath, 'c', 'c', 'bad_function');
-  checkFileExtension(basePath, 'c', 'h', 'bad_function');
-  checkFileExtension(basePath, 'cpp', 'cpp', 'bad_function');
-  checkFileExtension(basePath, 'java', 'java', 'TestClass::bad_function');
-  checkFileExtension(basePath, 'CSharp', 'cs', 'bad_function');
-  checkFileExtension(basePath, 'JavaScript', 'js', 'bad_function');
-  checkFileExtension(basePath, 'ObjectiveC', 'm', 'bad_function');
-  checkFileExtension(basePath, 'swift', 'swift', 'bad_function');
-  checkFileExtension(basePath, 'python', 'py', 'bad_function');
-  checkFileExtension(basePath, 'ruby', 'rb', 'bad_function');
-  checkFileExtension(basePath, 'php', 'php', 'bad_function');
-  checkFileExtension(basePath, 'scala', 'scala', 'bad_function');
-  checkFileExtension(basePath, 'GDScript', 'gd', 'bad_function');
-  checkFileExtension(basePath, 'GoLang', 'go', 'bad_function');
-  checkFileExtension(basePath, 'lua', 'lua', 'bad_function');
-  checkFileExtension(basePath, 'rust', 'rs', 'bad_function');
-
-  //---------------------------------------------------------------------------------------------------------------------
-
+function testBasicLintFunctionality(basePath: string){
   suite('The lizard tool analyzes functions', () => {
     setup(async () => {
       // set the value for cyclomatic complexity threshold very low in order
@@ -115,11 +93,13 @@ suite('Extension Test Suite', () => {
       assert.strictEqual(diagnostics[2].source, `lizard-linter`);
     });
   });
+}
 
-  //---------------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
+function testDisablingThreshold(basePath: string){
   suite('The lizard settings allow a disabling of each analysis by setting a 0', () => {
-    test('it does not throw any warning if thresholdNumberOfParameters is set to 0', async () => {
+    test('it does not throw any warning if threshold.numOfParameters is set to 0', async () => {
       vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 2);
       vscode.workspace.getConfiguration("thresholds").update("numOfParameters",  0);
       vscode.workspace.getConfiguration("thresholds").update("linesOfCodeWithoutComments",  10);
@@ -182,29 +162,68 @@ suite('Extension Test Suite', () => {
       assert.strictEqual(diagnostics[1].message, `too_long_function: Number of lines without comments 11 higher then threshold (10)`);
       assert.strictEqual(diagnostics[2].message, `too_many_tokens: Token count of 70 higher then threshold (69)`);
     });
+  });
+}
 
-    suite('The lizard settings allows to enable or disable a modified cyclomatic complexity calculation selectable in the settings', () => {
-      test('it does calculate a switch case as CCN of one in case enabled', async () => {
-        vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 1);
-        vscode.workspace.getConfiguration("execution").update("ModifiedCyclomaticComplexity",  "true");
+function testModifiedCyclomaticComplexity(basePath: string) {
+  suite('The lizard settings allows to enable or disable a modified cyclomatic complexity calculation selectable in the settings', () => {
+    test('it does calculate a switch case as CCN of one in case enabled', async () => {
+      vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 1);
+      vscode.workspace.getConfiguration("execution").update("ModifiedCyclomaticComplexity", true);
 
-        const badPath = path.join(basePath, 'switch_case.java');
-        await lizard.lintUri(vscode.Uri.file(badPath));
-        const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(badPath));
+      const badPath = path.join(basePath, 'switch_case.java');
+      await lizard.lintUri(vscode.Uri.file(badPath));
+      const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(badPath));
 
-        assert.strictEqual(diagnostics[2].message, `TestClass::switchCase: Cyclomatic complexity of 2 higher then threshold (1)`);
-      });
-
-      test('it does calculate a switch case as CCN of one in case disabled', async () => {
-        vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 1);
-        vscode.workspace.getConfiguration("execution").update("ModifiedCyclomaticComplexity",  "false");
-
-        const badPath = path.join(basePath, 'switch_case.java');
-        await lizard.lintUri(vscode.Uri.file(badPath));
-        const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(badPath));
-
-        assert.strictEqual(diagnostics[2].message, `TestClass::switchCase: Cyclomatic complexity of 13 higher then threshold (1)`);
-      });
+      assert.strictEqual(diagnostics[2].message, `TestClass::switchCase: Cyclomatic complexity of 2 higher then threshold (1)`);
     });
   });
+
+  suite('The lizard settings allows to enable or disable a modified cyclomatic complexity calculation selectable in the settings', () => {
+    test('it does calculate a switch case as CCN of thirteen in case disabled', async () => {
+      vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 1);
+      vscode.workspace.getConfiguration("execution").update("ModifiedCyclomaticComplexity", false);
+
+      const badPath = path.join(basePath, 'switch_case.java');
+      await lizard.lintUri(vscode.Uri.file(badPath));
+      const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(badPath));
+
+      assert.strictEqual(diagnostics[2].message, `TestClass::switchCase: Cyclomatic complexity of 13 higher then threshold (1)`);
+    });
+  });
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+suite('Extension Test Suite', () => {
+	vscode.window.showInformationMessage('Start all tests.');
+
+  //---------------------------------------------------------------------------------------------------------------------
+
+  const basePath = path.join(__dirname, 'test_files');
+  testFileExtension(basePath, 'c', 'c', 'bad_function');
+  testFileExtension(basePath, 'c', 'h', 'bad_function');
+  testFileExtension(basePath, 'cpp', 'cpp', 'bad_function');
+  testFileExtension(basePath, 'java', 'java', 'TestClass::bad_function');
+  testFileExtension(basePath, 'CSharp', 'cs', 'bad_function');
+  testFileExtension(basePath, 'JavaScript', 'js', 'bad_function');
+  testFileExtension(basePath, 'ObjectiveC', 'm', 'bad_function');
+  testFileExtension(basePath, 'swift', 'swift', 'bad_function');
+  testFileExtension(basePath, 'python', 'py', 'bad_function');
+  testFileExtension(basePath, 'ruby', 'rb', 'bad_function');
+  testFileExtension(basePath, 'php', 'php', 'bad_function');
+  testFileExtension(basePath, 'scala', 'scala', 'bad_function');
+  testFileExtension(basePath, 'GDScript', 'gd', 'bad_function');
+  testFileExtension(basePath, 'GoLang', 'go', 'bad_function');
+  testFileExtension(basePath, 'lua', 'lua', 'bad_function');
+  testFileExtension(basePath, 'rust', 'rs', 'bad_function');
+
+  //---------------------------------------------------------------------------------------------------------------------
+
+  testBasicLintFunctionality(basePath);
+  testDisablingThreshold(basePath);
+  testModifiedCyclomaticComplexity(basePath);
+
+  //---------------------------------------------------------------------------------------------------------------------
+
 });
