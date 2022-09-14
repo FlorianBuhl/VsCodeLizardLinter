@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import * as lizard from './../../lizard';
 
 //---------------------------------------------------------------------------------------------------------------------
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 async function testFileExtension(pathToTestFolder: string, language: string, fileEnding: string, badFunctionName: string) {
   suite(`File extension suite. The lizard tool can handle ${language} files`, () => {
@@ -16,14 +17,15 @@ async function testFileExtension(pathToTestFolder: string, language: string, fil
 
       // set the value for cyclomatic complexity threshold very low in order
       // to have smaller test files
-			vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 2);
-      vscode.workspace.getConfiguration("thresholds").update("tokenCount",  100);
-      vscode.workspace.getConfiguration("thresholds").update("numOfParameters",  5);
-      vscode.workspace.getConfiguration("thresholds").update("linesOfCodeWithoutComments",  1000);
+			await vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 2);
+      await vscode.workspace.getConfiguration("thresholds").update("tokenCount",  100);
+      await vscode.workspace.getConfiguration("thresholds").update("numOfParameters",  5);
+      await vscode.workspace.getConfiguration("thresholds").update("linesOfCodeWithoutComments",  1000);
     });
 
     test(`checks bad.${fileEnding} and reports the correct results`, async () => {
 			await lizard.lintUri(vscode.Uri.file(badPath));
+      await delay(3000);
       const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(badPath));
 
       assert.strictEqual(diagnostics.length, 1);
@@ -34,15 +36,15 @@ async function testFileExtension(pathToTestFolder: string, language: string, fil
 
     test(`finds nothing wrong with an empty.${fileEnding} file`, async () => {
       await lizard.lintUri(vscode.Uri.file(emptyPath));
-      const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(emptyPath));
-      console.log("test debug");
-      console.log(diagnostics.length);
+      await delay(3000);
+      const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(emptyPath));;
 
       assert.strictEqual(diagnostics.length, 0);
     });
 
     test(`finds nothing wrong with good.${fileEnding} file`, async () => {
       await lizard.lintUri(vscode.Uri.file(goodPath));
+      await delay(3000);
       const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(goodPath));
 
       assert.strictEqual(0, diagnostics.length);
@@ -57,15 +59,16 @@ function testBasicLintFunctionality(basePath: string){
     setup(async () => {
       // set the value for cyclomatic complexity threshold very low in order
       // to have smaller test files
-      vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 2);
-      vscode.workspace.getConfiguration("thresholds").update("numOfParameters",  5);
-      vscode.workspace.getConfiguration("thresholds").update("tokenCount",  69);
-      vscode.workspace.getConfiguration("thresholds").update("linesOfCodeWithoutComments",  10);
+      await vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 2);
+      await vscode.workspace.getConfiguration("thresholds").update("numOfParameters",  5);
+      await vscode.workspace.getConfiguration("thresholds").update("tokenCount",  69);
+      await vscode.workspace.getConfiguration("thresholds").update("linesOfCodeWithoutComments",  10);
     });
 
     test('it analyzes the number of parameters', async () => {
       const badPath = path.join(basePath, 'very_bad.py');
 			await lizard.lintUri(vscode.Uri.file(badPath));
+      await delay(3000);
       const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(badPath));
 
       assert.strictEqual(diagnostics[0].severity, vscode.DiagnosticSeverity.Warning);
@@ -76,6 +79,7 @@ function testBasicLintFunctionality(basePath: string){
     test('it analyzes the number of code lines without comments', async () => {
       const badPath = path.join(basePath, 'very_bad.py');
 			await lizard.lintUri(vscode.Uri.file(badPath));
+      await delay(3000);
       const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(badPath));
 
       assert.strictEqual(diagnostics[1].severity, vscode.DiagnosticSeverity.Warning);
@@ -86,6 +90,7 @@ function testBasicLintFunctionality(basePath: string){
     test('it analyzes the number of tokens', async () => {
       const badPath = path.join(basePath, 'very_bad.py');
 			await lizard.lintUri(vscode.Uri.file(badPath));
+      await delay(3000);
       const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(badPath));
 
       assert.strictEqual(diagnostics[2].severity, vscode.DiagnosticSeverity.Warning);
@@ -100,13 +105,14 @@ function testBasicLintFunctionality(basePath: string){
 function testDisablingThreshold(basePath: string){
   suite('The lizard settings allow a disabling of each analysis by setting a 0', () => {
     test('it does not throw any warning if threshold.numOfParameters is set to 0', async () => {
-      vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 2);
-      vscode.workspace.getConfiguration("thresholds").update("numOfParameters",  0);
-      vscode.workspace.getConfiguration("thresholds").update("linesOfCodeWithoutComments",  10);
-      vscode.workspace.getConfiguration("thresholds").update("tokenCount",  69);
+      await vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 2);
+      await vscode.workspace.getConfiguration("thresholds").update("numOfParameters",  0);
+      await vscode.workspace.getConfiguration("thresholds").update("linesOfCodeWithoutComments",  10);
+      await vscode.workspace.getConfiguration("thresholds").update("tokenCount",  69);
 
       const badPath = path.join(basePath, 'very_bad.py');
 			await lizard.lintUri(vscode.Uri.file(badPath));
+      await delay(3000);
       const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(badPath));
 
       assert.strictEqual(diagnostics.length, 3);
@@ -116,13 +122,14 @@ function testDisablingThreshold(basePath: string){
     });
 
     test('it does not throw any warning if thresholdLinesOfCodeWithoutComments is set to 0', async () => {
-      vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 2);
-      vscode.workspace.getConfiguration("thresholds").update("numOfParameters",  5);
-      vscode.workspace.getConfiguration("thresholds").update("linesOfCodeWithoutComments",  0);
-      vscode.workspace.getConfiguration("thresholds").update("tokenCount",  69);
+      await vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 2);
+      await vscode.workspace.getConfiguration("thresholds").update("numOfParameters",  5);
+      await vscode.workspace.getConfiguration("thresholds").update("linesOfCodeWithoutComments",  0);
+      await vscode.workspace.getConfiguration("thresholds").update("tokenCount",  69);
 
       const badPath = path.join(basePath, 'very_bad.py');
 			await lizard.lintUri(vscode.Uri.file(badPath));
+      await delay(3000);
       const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(badPath));
 
       assert.strictEqual(diagnostics.length, 3);
@@ -132,13 +139,14 @@ function testDisablingThreshold(basePath: string){
     });
 
     test('it does not throw any warning if thresholdNumberOfTokens is set to 0', async () => {
-      vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 2);
-      vscode.workspace.getConfiguration("thresholds").update("numOfParameters",  5);
-      vscode.workspace.getConfiguration("thresholds").update("linesOfCodeWithoutComments",  10);
-      vscode.workspace.getConfiguration("thresholds").update("tokenCount",  0);
+      await vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 2);
+      await vscode.workspace.getConfiguration("thresholds").update("numOfParameters",  5);
+      await vscode.workspace.getConfiguration("thresholds").update("linesOfCodeWithoutComments",  10);
+      await vscode.workspace.getConfiguration("thresholds").update("tokenCount",  0);
 
       const badPath = path.join(basePath, 'very_bad.py');
 			await lizard.lintUri(vscode.Uri.file(badPath));
+      await delay(3000);
       const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(badPath));
 
       assert.strictEqual(diagnostics.length, 3);
@@ -148,13 +156,14 @@ function testDisablingThreshold(basePath: string){
     });
 
     test('does not throw any warning if thresholdCyclomaticComplexity is set to 0', async () => {
-      vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 0);
-      vscode.workspace.getConfiguration("thresholds").update("numOfParameters",  5);
-      vscode.workspace.getConfiguration("thresholds").update("linesOfCodeWithoutComments",  10);
-      vscode.workspace.getConfiguration("thresholds").update("tokenCount",  69);
+      await vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 0);
+      await vscode.workspace.getConfiguration("thresholds").update("numOfParameters",  5);
+      await vscode.workspace.getConfiguration("thresholds").update("linesOfCodeWithoutComments",  10);
+      await vscode.workspace.getConfiguration("thresholds").update("tokenCount",  69);
 
       const badPath = path.join(basePath, 'very_bad.py');
 			await lizard.lintUri(vscode.Uri.file(badPath));
+      await delay(3000);
       const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(badPath));
 
       assert.strictEqual(diagnostics.length, 3);
@@ -168,8 +177,8 @@ function testDisablingThreshold(basePath: string){
 function testModifiedCyclomaticComplexity(basePath: string) {
   suite('The lizard settings allows to enable or disable a modified cyclomatic complexity calculation selectable in the settings', () => {
     test('it does calculate a switch case as CCN of one in case enabled', async () => {
-      vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 1);
-      vscode.workspace.getConfiguration("execution").update("ModifiedCyclomaticComplexity", true);
+      await vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 1);
+      await vscode.workspace.getConfiguration("execution").update("ModifiedCyclomaticComplexity", true);
 
       const badPath = path.join(basePath, 'switch_case.java');
       await lizard.lintUri(vscode.Uri.file(badPath));
@@ -181,8 +190,8 @@ function testModifiedCyclomaticComplexity(basePath: string) {
 
   suite('The lizard settings allows to enable or disable a modified cyclomatic complexity calculation selectable in the settings', () => {
     test('it does calculate a switch case as CCN of thirteen in case disabled', async () => {
-      vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 1);
-      vscode.workspace.getConfiguration("execution").update("ModifiedCyclomaticComplexity", false);
+      await vscode.workspace.getConfiguration("thresholds").update("cyclomaticComplexity", 1);
+      await vscode.workspace.getConfiguration("execution").update("ModifiedCyclomaticComplexity", false);
 
       const badPath = path.join(basePath, 'switch_case.java');
       await lizard.lintUri(vscode.Uri.file(badPath));
@@ -201,7 +210,7 @@ suite('Extension Test Suite', () => {
   //---------------------------------------------------------------------------------------------------------------------
 
   const basePath = path.resolve(__dirname, '../../../src/test/suite/test_files/');
-  testFileExtension(basePath, 'c', 'c', 'bad_function');
+  // testFileExtension(basePath, 'c', 'c', 'bad_function');
   // testFileExtension(basePath, 'c', 'h', 'bad_function');
   // testFileExtension(basePath, 'cpp', 'cpp', 'bad_function');
   // testFileExtension(basePath, 'java', 'java', 'TestClass::bad_function');
@@ -220,9 +229,9 @@ suite('Extension Test Suite', () => {
 
   //---------------------------------------------------------------------------------------------------------------------
 
-  // testBasicLintFunctionality(basePath);
-  // testDisablingThreshold(basePath);
-  // testModifiedCyclomaticComplexity(basePath);
+  testBasicLintFunctionality(basePath);
+  testDisablingThreshold(basePath);
+  testModifiedCyclomaticComplexity(basePath);
 
   //---------------------------------------------------------------------------------------------------------------------
 
