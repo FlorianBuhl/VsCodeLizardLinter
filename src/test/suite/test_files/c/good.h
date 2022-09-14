@@ -1,4 +1,4 @@
-inline int void test()
+inline int test()
 {
   return 0;
 }

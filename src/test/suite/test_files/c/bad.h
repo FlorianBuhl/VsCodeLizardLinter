@@ -1,4 +1,4 @@
-inline int void bad_function()
+inline int bad_function()
 {
   int a;
   int i;

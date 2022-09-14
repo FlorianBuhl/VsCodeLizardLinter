@@ -1,4 +1,4 @@
-int void test()
+int test()
 {
   return 0;
 }
