@@ -155,7 +155,11 @@ export async function lintUri(uri: vscode.Uri): Promise<void> {
 																	new vscode.ShellExecution(cmd));
 
 			task.presentationOptions.focus = false;
-			task.presentationOptions.reveal = vscode.TaskRevealKind.Always;
+			task.presentationOptions.reveal = vscode.TaskRevealKind.Never;
+			task.presentationOptions.panel = vscode.TaskPanelKind.New;
+			task.presentationOptions.echo = true;
+			task.isBackground = true;
+
 			console.log(cmd);
 
 			// execute task
@@ -163,15 +167,15 @@ export async function lintUri(uri: vscode.Uri): Promise<void> {
 			let disposable = vscode.tasks.onDidEndTask(async(event) => {
 				if (event.execution.task.definition.type === "lizard-linter") {
 					disposable.dispose();
-					await analyzeLizardLogFiles([vscode.Uri.file(event.execution.task.definition.logFilePath)]);
-					event.execution.terminate();
 					resolve();
+					// event.execution.terminate();
+					analyzeLizardLogFiles([vscode.Uri.file(event.execution.task.definition.logFilePath)]);
 				}
 			});
 		}
 		else {
 			if(false === await isUriSupported(uri)) {
-				reject( new Error("Requested Uri not supported"));
+				reject(new Error("Requested Uri not supported"));
 			} else {
 				reject(new Error("No workspace"));
 			}
