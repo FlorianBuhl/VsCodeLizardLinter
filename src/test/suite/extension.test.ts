@@ -182,6 +182,7 @@ function testModifiedCyclomaticComplexity(basePath: string) {
 
       const badPath = path.join(basePath, 'switch_case.java');
       await lizard.lintUri(vscode.Uri.file(badPath));
+      await delay(3000);
       const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(badPath));
 
       assert.strictEqual(diagnostics[2].message, `TestClass::switchCase: Cyclomatic complexity of 2 higher then threshold (1)`);
@@ -195,6 +196,7 @@ function testModifiedCyclomaticComplexity(basePath: string) {
 
       const badPath = path.join(basePath, 'switch_case.java');
       await lizard.lintUri(vscode.Uri.file(badPath));
+      await delay(3000);
       const diagnostics = vscode.languages.getDiagnostics(vscode.Uri.file(badPath));
 
       assert.strictEqual(diagnostics[2].message, `TestClass::switchCase: Cyclomatic complexity of 13 higher then threshold (1)`);
@@ -210,7 +212,7 @@ suite('Extension Test Suite', () => {
   //---------------------------------------------------------------------------------------------------------------------
 
   const basePath = path.resolve(__dirname, '../../../src/test/suite/test_files/');
-  // testFileExtension(basePath, 'c', 'c', 'bad_function');
+  testFileExtension(basePath, 'c', 'c', 'bad_function');
   // testFileExtension(basePath, 'c', 'h', 'bad_function');
   // testFileExtension(basePath, 'cpp', 'cpp', 'bad_function');
   // testFileExtension(basePath, 'java', 'java', 'TestClass::bad_function');
