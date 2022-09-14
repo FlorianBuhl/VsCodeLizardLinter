@@ -146,18 +146,20 @@ export async function lintUri(uri: vscode.Uri): Promise<void> {
 			} catch(err) {
 				console.error(`Remove previously generated log file ${logFilePath}\n${err}`);
 			}
+			console.log(`logFilePath: ${logFilePath}`);
 
 			// create task
 			let cmd = calculateLizardShellCmd(uri, logFilePath);
 			let task = new vscode.Task({type: "lizard-linter", logFilePath: logFilePath},
 																	workspaceFolder, "Execute lizard tool", "lizard-linter",
 																	new vscode.ShellExecution(cmd));
+
 			task.presentationOptions.focus = false;
-			task.presentationOptions.reveal = vscode.TaskRevealKind.Never;
+			task.presentationOptions.reveal = vscode.TaskRevealKind.Always;
 			console.log(cmd);
 
 			// execute task
-			await vscode.tasks.executeTask(task);
+			vscode.tasks.executeTask(task);
 			let disposable = vscode.tasks.onDidEndTask(async(event) => {
 				if (event.execution.task.definition.type === "lizard-linter") {
 					disposable.dispose();
