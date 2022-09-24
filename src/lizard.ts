@@ -262,11 +262,11 @@ function calculateLizardShellCmd(uri: vscode.Uri, logFilePath: string): string {
 
 	// modified cyclomatic complexity
 	if(vscode.workspace.getConfiguration("execution").get("ModifiedCyclomaticComplexity")){
-		lizardArgs += '-m ';
+		lizardArgs += '-m';
 	}
 
 	// shell cmd
-	let cmd = `lizard ${uri.fsPath} ${lizardArgs} -o ${logFilePath}`;
+	let cmd = `lizard "${uri.fsPath}" ${lizardArgs} -o "${logFilePath}"`;
 	return cmd;
 }
 
