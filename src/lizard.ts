@@ -166,6 +166,7 @@ export async function lintUri(uri: vscode.Uri): Promise<void> {
 			vscode.tasks.executeTask(task);
 			let disposable = vscode.tasks.onDidEndTask(async(event) => {
 				if (event.execution.task.definition.type === "lizard-linter") {
+					console.log("lizard task finished");
 					disposable.dispose();
 					resolve();
 					// event.execution.terminate();
@@ -276,6 +277,7 @@ export async function analyzeLizardLogFiles(lizardLogFilesUri: vscode.Uri[]){
 	// cycle through log files
 	for (let lizardLogFileUri of lizardLogFilesUri) {
 		if(true === await fsExists(lizardLogFileUri)) {
+			console.log("analyze log file: " + lizardLogFileUri.fsPath)
 			let document = await vscode.workspace.openTextDocument(lizardLogFileUri);
 			let text = document.getText(); // load text of document
 			lizardDiagCol = analyzeLizardLogFile(text); // analyze file
