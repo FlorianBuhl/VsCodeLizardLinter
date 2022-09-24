@@ -111,6 +111,7 @@ async function fsExists(uri: vscode.Uri): Promise<boolean> {
 		isFsExisting = true;
 	} catch {
 		isFsExisting = false;
+		console.log("log file uri not existing");
 	}
 	return isFsExisting;
 }
