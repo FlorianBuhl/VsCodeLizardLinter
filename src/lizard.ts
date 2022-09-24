@@ -265,7 +265,7 @@ function calculateLizardShellCmd(uri: vscode.Uri, logFilePath: string): string {
 	}
 
 	// shell cmd
-	let cmd = `lizard ${uri.fsPath} ${lizardArgs} >> ${logFilePath}`;
+	let cmd = `lizard ${uri.fsPath} ${lizardArgs} -o ${logFilePath}`;
 	return cmd;
 }
 
