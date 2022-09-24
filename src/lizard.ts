@@ -277,7 +277,7 @@ export async function analyzeLizardLogFiles(lizardLogFilesUri: vscode.Uri[]){
 	// cycle through log files
 	for (let lizardLogFileUri of lizardLogFilesUri) {
 		if(true === await fsExists(lizardLogFileUri)) {
-			console.log("analyze log file: " + lizardLogFileUri.fsPath)
+			console.log("analyze log file: " + lizardLogFileUri.fsPath);
 			let document = await vscode.workspace.openTextDocument(lizardLogFileUri);
 			let text = document.getText(); // load text of document
 			lizardDiagCol = analyzeLizardLogFile(text); // analyze file
@@ -361,6 +361,7 @@ export function analyzeLizardLogFile(text: string): Map<vscode.Uri, vscode.Diagn
 
 				const diagnosticsOfFunction = createDiagnosticEntry(functionAnalysis);
 				diagnostics.push(...diagnosticsOfFunction);
+				console.log(diagnostics);
 
 				previousUri = fileUri;
 				diagnosticCollection.set(fileUri, diagnostics);
