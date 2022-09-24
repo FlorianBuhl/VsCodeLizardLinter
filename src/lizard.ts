@@ -361,7 +361,6 @@ export function analyzeLizardLogFile(text: string): Map<vscode.Uri, vscode.Diagn
 
 				const diagnosticsOfFunction = createDiagnosticEntry(functionAnalysis);
 				diagnostics.push(...diagnosticsOfFunction);
-				console.log(diagnostics);
 
 				previousUri = fileUri;
 				diagnosticCollection.set(fileUri, diagnostics);
@@ -400,6 +399,7 @@ function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diag
 		diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
 		diagnostic.source = "lizard-linter";
 		diagnostics.push(diagnostic);
+		console.log(message);
 	}
 
 	// lines of code without comments
@@ -412,6 +412,7 @@ function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diag
 		diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
 		diagnostic.source = "lizard-linter";
 		diagnostics.push(diagnostic);
+		console.log(message);
 	}
 
 	// token count
@@ -424,6 +425,7 @@ function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diag
 		diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
 		diagnostic.source = "lizard-linter";
 		diagnostics.push(diagnostic);
+		console.log(message);
 	}
 
 	// cyclomatic complexity
@@ -436,6 +438,7 @@ function createDiagnosticEntry(functionAnalysis: FunctionAnalysis) : vscode.Diag
 		diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
 		diagnostic.source = "lizard-linter";
 		diagnostics.push(diagnostic);
+		console.log(message);
 	}
 
 	return diagnostics;
