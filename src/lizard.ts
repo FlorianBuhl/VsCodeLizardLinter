@@ -276,6 +276,7 @@ export async function analyzeLizardLogFiles(lizardLogFilesUri: vscode.Uri[]){
 
 	// cycle through log files
 	for (let lizardLogFileUri of lizardLogFilesUri) {
+		console.log("check if uri exists: " + lizardLogFileUri.fsPath);
 		if(true === await fsExists(lizardLogFileUri)) {
 			console.log("analyze log file: " + lizardLogFileUri.fsPath);
 			let document = await vscode.workspace.openTextDocument(lizardLogFileUri);
