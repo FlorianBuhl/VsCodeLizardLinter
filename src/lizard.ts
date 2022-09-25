@@ -1,7 +1,6 @@
 // Imports
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs';
 import { performance } from 'perf_hooks';
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -281,7 +280,7 @@ export async function analyzeLizardLogFiles(lizardLogFilesUri: vscode.Uri[]){
 		console.log("check if uri exists: " + lizardLogFileUri.fsPath);
 		let debug = await vscode.workspace.fs.readDirectory(vscode.Uri.file(path.dirname(lizardLogFileUri.fsPath)));
 		console.log(debug.toString());
-		if(true === fs.existsSync(lizardLogFileUri.fsPath)) {
+		if(true === await fsExists(lizardLogFileUri)) {
 			console.log("analyze log file: " + lizardLogFileUri.fsPath);
 			let document = await vscode.workspace.openTextDocument(lizardLogFileUri);
 			let text = document.getText(); // load text of document
