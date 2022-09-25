@@ -26,6 +26,20 @@
 			"problemMatcher": [],
 			"label": "npm: test",
 			"detail": "node ./out/test/runTest.js"
-		}
+		},
+		{
+			"label": "lizradTestTask2",
+			"type": "shell",
+			"command": "lizard d:\\Workspaces\\visual_studio_code_extensions\\lizard-linter\\src\\test\\suite\\test_files\\very_bad.py -T cyclomatic_complexity=20 -T parameter_count=20 -T token_count=200 -m ",
+			"problemMatcher": [],
+			"isBackground": true,
+			"group": "test",
+			"presentation": {
+        "reveal": "never",
+        "panel": "new",
+				"close": true,
+				"echo": true,
+      }
+		},
 	]
 }
